@@ -33,5 +33,11 @@ export class ProfilesService {
   async findOne(id: number) {
   return this.profilesRepo.findOne({ where: { id } });
 }
-
+async findOneOwnedByUser(profileId: number, userId: number) {
+  const profile = await this.profilesRepo.findOne({ where: { id: profileId } });
+  if (!profile || profile.userId !== userId) {
+    return null;
+  }
+  return profile;
+}
 }

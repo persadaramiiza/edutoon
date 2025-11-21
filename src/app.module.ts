@@ -8,8 +8,14 @@ import { Profile } from './profiles/profile.entity';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ProfilesModule } from './profiles/profiles.module';
+
 import { VideosModule } from './videos/videos.module';
 import { Video } from './videos/video.entity';
+
+import { Quiz } from './quizzes/quiz.entity';
+import { QuizOption } from './quizzes/quiz-option.entity';
+import { QuizAttempt } from './quizzes/quiz-attempt.entity';
+import { QuizzesModule } from './quizzes/quizzes.module';
 
 @Module({
   imports: [
@@ -24,7 +30,7 @@ import { Video } from './videos/video.entity';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile, Video],
+        entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt],
         synchronize: true,
       }),
     }),
@@ -32,6 +38,7 @@ import { Video } from './videos/video.entity';
     UsersModule,
     ProfilesModule,
     VideosModule,
+    QuizzesModule,
   ],
 })
 export class AppModule { }
