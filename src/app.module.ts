@@ -8,6 +8,8 @@ import { Profile } from './profiles/profile.entity';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { VideosModule } from './videos/videos.module';
+import { Video } from './videos/video.entity';
 
 @Module({
   imports: [
@@ -22,13 +24,14 @@ import { ProfilesModule } from './profiles/profiles.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile],
+        entities: [User, Profile, Video],
         synchronize: true,
       }),
     }),
     AuthModule,
     UsersModule,
     ProfilesModule,
+    VideosModule,
   ],
 })
 export class AppModule { }

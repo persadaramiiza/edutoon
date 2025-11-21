@@ -30,4 +30,8 @@ export class ProfilesService {
     const valid = profile.passcode === passcode;
     return { valid };
   }
+  async findOne(id: number) {
+  return this.profilesRepo.findOne({ where: { id } });
+}
+
 }
