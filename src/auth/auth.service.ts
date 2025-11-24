@@ -8,6 +8,8 @@ import { User } from '../users/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+import { Role } from './role.enum';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -45,7 +47,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role:user.role };
     const accessToken = await this.jwtService.signAsync(payload);
 
     return { accessToken };

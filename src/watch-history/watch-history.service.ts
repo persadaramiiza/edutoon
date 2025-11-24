@@ -24,20 +24,18 @@ export class WatchHistoryService {
     }) {
         const { userId, profileId, videoId, timestampSeconds } = options;
 
-        // pastikan profile milik user yang login
         const profile = await this.profilesService.findOneOwnedByUser(profileId, userId);
         if (!profile) {
             throw new ForbiddenException('Profile not found or not owned by user');
         }
 
-        // ambil video untuk tahu durasinya
         const video = await this.videoRepo.findOne({ where: { id: videoId } });
         if (!video) {
             throw new NotFoundException('Video not found');
         }
 
-        // logika auto complete
-        const marginSeconds = 5; // misal: 5 detik terakhir dianggap selesai
+
+        const marginSeconds = 5;
         let autoCompleted = false;
 
         if (
@@ -125,7 +123,7 @@ export class WatchHistoryService {
                 is_completed: row.is_completed,
                 updated_at: row.updated_at,
 
-                progress_percent: percent, // 👈 tambahan baru
+                progress_percent: percent,
 
                 video: {
                     id: row.video.id,
