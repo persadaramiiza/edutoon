@@ -17,6 +17,9 @@ import { QuizOption } from './quizzes/quiz-option.entity';
 import { QuizAttempt } from './quizzes/quiz-attempt.entity';
 import { QuizzesModule } from './quizzes/quizzes.module';
 
+import { WatchHistory } from './watch-history/watch-history.entity';
+import { WatchHistoryModule } from './watch-history/watch-history.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -30,7 +33,7 @@ import { QuizzesModule } from './quizzes/quizzes.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt],
+        entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt, WatchHistory],
         synchronize: true,
       }),
     }),
@@ -39,6 +42,7 @@ import { QuizzesModule } from './quizzes/quizzes.module';
     ProfilesModule,
     VideosModule,
     QuizzesModule,
+    WatchHistoryModule,
   ],
 })
 export class AppModule { }
