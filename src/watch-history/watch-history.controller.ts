@@ -83,4 +83,13 @@ export class WatchHistoryController {
         );
         return list;
     }
+    @UseGuards(JwtAuthGuard)
+    @Get('recent')
+    async getRecent(
+        @CurrentUser() user: JwtUser,
+        @Query('profileId') profileIdStr: string,
+    ) {
+        const profileId = Number(profileIdStr);
+        return this.watchHistoryService.getRecentVideos(profileId, user.userId);
+    }
 }
