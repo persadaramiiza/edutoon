@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtUser } from './jwt-user.interface';
+import { Role } from './role.enum';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -10,7 +11,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const secret = configService.get<string>('JWT_SECRET');
 
     if (!secret) {
-      // Biar kalau lupa set env, error-nya jelas di awal
       throw new Error('JWT_SECRET is not set in environment variables');
     }
 
@@ -25,6 +25,7 @@ async validate(payload: any): Promise<JwtUser> {
   return {
     userId: payload.sub,
     email: payload.email,
+    role: payload.role as Role,
   };
 }  
 }

@@ -4,6 +4,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtUser } from '../auth/jwt-user.interface';
 
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '../auth/role.enum';
+
+
 @Controller('api/videos')
 export class VideosController {
   constructor(private readonly videosService: VideosService) {}
@@ -31,7 +36,8 @@ export class VideosController {
   }
 
   // sementara: endpoint buat masukin video dummy (tanpa upload beneran)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CREATOR, Role.ADMIN)
   @Post()
   async createVideo(
     @Body()
