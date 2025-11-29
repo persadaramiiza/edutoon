@@ -32,7 +32,7 @@ export class QuizzesService {
   }
 
   async submitAnswer(dto: SubmitQuizDto, currentUserId: number) {
-    const profile = await this.profilesService.findOneOwnedByUser(dto.profileId, currentUserId);
+    const profile = await this.profilesService.findOneByUser(dto.profileId, currentUserId);
     if (!profile) {
       throw new ForbiddenException('Profile not found or not owned by this user');
     }

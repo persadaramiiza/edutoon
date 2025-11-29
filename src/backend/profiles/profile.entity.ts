@@ -1,26 +1,34 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from '../users/user.entity';
 
 @Entity('profiles')
-export class Profile{
-      @PrimaryGeneratedColumn('increment')
+export class Profile {
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  profile_name: string;
+  @Column({ length: 100 })
+  name: string;
 
-  @Column({ nullable: true })
+  @Column({ length: 500, nullable: true })
   avatar_url?: string;
 
-  @Column()
+  @Column({ type: 'int', default: 0 })
   age_group: number;
 
-  @Column({ length: 4, nullable: true })
-  passcode?: string;
-
-  @ManyToOne(() => User, (user) => user.profiles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column()
-  userId: number; // kolom FK
+  @Column({ name: 'user_id' })
+  userId: number;
+
+  @CreateDateColumn()
+  created_at: Date;
 }
