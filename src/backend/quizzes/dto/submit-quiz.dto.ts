@@ -1,15 +1,19 @@
-import { IsInt, IsPositive } from 'class-validator';
+import { IsNumber, IsNotEmpty } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class SubmitQuizDto {
-  @IsInt()
-  @IsPositive()
+  @ApiProperty({ example: 1, description: 'Quiz ID' })
+  @IsNumber()
+  @IsNotEmpty()
   quizId: number;
 
-  @IsInt()
-  @IsPositive()
-  optionId: number;
+  @ApiProperty({ example: 1, description: 'Profile ID (anak)' })
+  @IsNumber()
+  @IsNotEmpty()
+  profileId: number;
 
-  @IsInt()
-  @IsPositive()
-  profileId: number; // profil anak yang lagi aktif
+  @ApiProperty({ example: 1, description: 'Selected option ID' })
+  @IsNumber()
+  @IsNotEmpty()
+  selectedOptionId: number;
 }

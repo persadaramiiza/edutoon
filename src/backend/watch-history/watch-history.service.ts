@@ -24,7 +24,7 @@ export class WatchHistoryService {
     }) {
         const { userId, profileId, videoId, timestampSeconds } = options;
 
-        const profile = await this.profilesService.findOneOwnedByUser(profileId, userId);
+        const profile = await this.profilesService.findOneByUser(profileId, userId);
         if (!profile) {
             throw new ForbiddenException('Profile not found or not owned by user');
         }
@@ -76,7 +76,7 @@ export class WatchHistoryService {
     }
 
     async getProgress(profileId: number, videoId: number, userId: number) {
-        const profile = await this.profilesService.findOneOwnedByUser(profileId, userId);
+        const profile = await this.profilesService.findOneByUser(profileId, userId);
         if (!profile) {
             return null;
         }
@@ -87,7 +87,7 @@ export class WatchHistoryService {
     }
 
     async getContinueWatching(profileId: number, userId: number) {
-        const profile = await this.profilesService.findOneOwnedByUser(profileId, userId);
+        const profile = await this.profilesService.findOneByUser(profileId, userId);
         if (!profile) {
             throw new ForbiddenException('Profile not found or not owned by user');
         }
@@ -138,7 +138,7 @@ export class WatchHistoryService {
     }
 
     async getRecentVideos(profileId: number, userID: number) {
-        const profile = await this.profilesService.findOneOwnedByUser(profileId, userID);
+        const profile = await this.profilesService.findOneByUser(profileId, userID);
         if (!profile) {
             throw new ForbiddenException('Profile not found of not owned by user');
         }

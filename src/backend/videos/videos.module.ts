@@ -9,5 +9,6 @@ import { ProfilesModule } from '../profiles/profiles.module';
   imports: [TypeOrmModule.forFeature([Video]), ProfilesModule],
   providers: [VideosService],
   controllers: [VideosController],
+  exports: [VideosService], // Export untuk digunakan module lain
 })
 export class VideosModule {}
