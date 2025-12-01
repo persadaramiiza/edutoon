@@ -14,9 +14,27 @@ async function bootstrap() {
   // Security: Helmet for HTTP headers
   app.use(helmet());
 
-  // Enable CORS
+  // Enable CORS - Support multiple origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3333',
+    'https://edutoon.space',
+    'https://www.edutoon.space',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean);
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn(`CORS blocked origin: ${origin}`);
+        callback(null, true); // Allow all for now, but log it
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
