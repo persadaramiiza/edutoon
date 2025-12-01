@@ -28,8 +28,24 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter');
+    // Validasi password yang lebih kuat
+    if (password.length < 8) {
+      setError('Password minimal 8 karakter');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError('Password harus mengandung minimal 1 huruf besar');
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError('Password harus mengandung minimal 1 huruf kecil');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('Password harus mengandung minimal 1 angka');
       return;
     }
 
@@ -42,8 +58,13 @@ export default function RegisterPage() {
         router.push('/login');
       }, 2000);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Registrasi gagal. Coba lagi.');
+      const error = err as { response?: { data?: { message?: string | string[] } } };
+      const message = error.response?.data?.message;
+      if (Array.isArray(message)) {
+        setError(message[0]); // Tampilkan error pertama
+      } else {
+        setError(message || 'Registrasi gagal. Coba lagi.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -169,7 +190,7 @@ export default function RegisterPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimal 6 karakter"
+                placeholder="Min 8 karakter, huruf besar, kecil, angka"
                 required
                 icon={
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
