@@ -137,10 +137,10 @@ export class WatchHistoryService {
         });
     }
 
-    async getRecentVideos(profileId: number, userID: number) {
-        const profile = await this.profilesService.findOneByUser(profileId, userID);
+    async getRecentVideos(profileId: number, userId: number) {
+        const profile = await this.profilesService.findOneByUser(profileId, userId);
         if (!profile) {
-            throw new ForbiddenException('Profile not found of not owned by user');
+            throw new ForbiddenException('Profile not found or not owned by user');
         }
 
         const rows = await this.watchRepo

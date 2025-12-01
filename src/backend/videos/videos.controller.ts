@@ -10,7 +10,7 @@ import {
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { VideosService } from './videos.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
@@ -20,6 +20,7 @@ import { Roles } from '../auth/roles.decorator';
 import { Role } from '../auth/role.enum';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { JwtUser } from '../auth/jwt-user.interface';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Videos')
 @Controller('api/videos')
@@ -41,15 +42,20 @@ export class VideosController {
   @Get()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Daftar semua video (published)' })
-  @ApiQuery({ name: 'profileId', required: false })
+  @ApiOperation({ summary: 'Daftar semua video (published) dengan pagination' })
+  @ApiQuery({ name: 'profileId', required: false, description: 'Filter by profile age' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (default: 10, max: 100)' })
+  @ApiResponse({ status: 200, description: 'Paginated list of videos' })
   async getVideos(
     @CurrentUser() user: JwtUser,
     @Query('profileId') profileId?: string,
+    @Query() pagination?: PaginationDto,
   ) {
     return this.videosService.findAll({
       profileId: profileId ? Number(profileId) : undefined,
       currentUserId: user.sub,
+      pagination,
     });
   }
 

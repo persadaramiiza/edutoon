@@ -4,8 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
@@ -23,6 +25,8 @@ export enum VideoStatus {
 }
 
 @Entity('videos')
+@Index(['status', 'min_age']) // Composite index for filtering
+@Index(['creator_id', 'created_at']) // Index for creator's videos
 export class Video {
   @PrimaryGeneratedColumn('increment')
   id: number;
@@ -37,7 +41,7 @@ export class Video {
   video_url: string;
 
   @Column({ length: 100, nullable: true })
-  video_id?: string; // YouTube/Vimeo video ID
+  video_id?: string;
 
   @Column({ length: 500, nullable: true })
   thumbnail_url?: string;
@@ -49,6 +53,7 @@ export class Video {
   })
   platform: VideoPlatform;
 
+  @Index()
   @Column({
     type: 'enum',
     enum: VideoStatus,
@@ -59,12 +64,14 @@ export class Video {
   @Column({ type: 'int', nullable: true })
   duration_seconds?: number;
 
+  @Index()
   @Column({ type: 'int', default: 0 })
   min_age: number;
 
   @Column({ type: 'int', nullable: true })
   max_age?: number;
 
+  @Index()
   @Column({ length: 100, nullable: true })
   category?: string;
 
@@ -75,6 +82,7 @@ export class Video {
   @JoinColumn({ name: 'creator_id' })
   creator?: User;
 
+  @Index()
   @Column({ nullable: true })
   creator_id?: number;
 
@@ -83,4 +91,7 @@ export class Video {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  @DeleteDateColumn()
+  deleted_at?: Date;
 }

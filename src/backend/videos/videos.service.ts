@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,9 +10,12 @@ import { Video, VideoPlatform, VideoStatus } from './video.entity';
 import { ProfilesService } from '../profiles/profiles.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
+import { PaginationDto, createPaginatedResult } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class VideosService {
+  private readonly logger = new Logger(VideosService.name);
+
   constructor(
     @InjectRepository(Video)
     private readonly videosRepo: Repository<Video>,
@@ -62,8 +66,12 @@ export class VideosService {
     }
   }
 
-  // List video, optional filter by profile
-  async findAll(options?: { profileId?: number; currentUserId?: number }) {
+  // List video, optional filter by profile with pagination
+  async findAll(options?: { 
+    profileId?: number; 
+    currentUserId?: number;
+    pagination?: PaginationDto;
+  }) {
     const qb = this.videosRepo.createQueryBuilder('v');
 
     // Hanya tampilkan video PUBLISHED
@@ -83,7 +91,18 @@ export class VideosService {
     }
 
     qb.orderBy('v.created_at', 'DESC');
-    return qb.getMany();
+
+    // Apply pagination
+    const page = options?.pagination?.page || 1;
+    const limit = options?.pagination?.limit || 10;
+    const skip = (page - 1) * limit;
+
+    const [videos, total] = await qb
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    return createPaginatedResult(videos, total, page, limit);
   }
 
   async findOneById(id: number) {
@@ -132,8 +151,8 @@ export class VideosService {
   async update(id: number, dto: UpdateVideoDto, userId: number) {
     const video = await this.findOneById(id);
 
-    // Cek ownership
-    if (video.creator_id && video.creator_id !== userId) {
+    // Cek ownership - video harus milik user ini
+    if (video.creator_id !== userId) {
       throw new ForbiddenException('Anda tidak memiliki akses untuk mengubah video ini');
     }
 
@@ -158,7 +177,7 @@ export class VideosService {
   async publish(id: number, userId: number) {
     const video = await this.findOneById(id);
 
-    if (video.creator_id && video.creator_id !== userId) {
+    if (video.creator_id !== userId) {
       throw new ForbiddenException('Anda tidak memiliki akses untuk mempublish video ini');
     }
 
@@ -169,7 +188,7 @@ export class VideosService {
   async archive(id: number, userId: number) {
     const video = await this.findOneById(id);
 
-    if (video.creator_id && video.creator_id !== userId) {
+    if (video.creator_id !== userId) {
       throw new ForbiddenException('Anda tidak memiliki akses untuk mengarsipkan video ini');
     }
 
@@ -180,11 +199,12 @@ export class VideosService {
   async remove(id: number, userId: number) {
     const video = await this.findOneById(id);
 
-    if (video.creator_id && video.creator_id !== userId) {
+    if (video.creator_id !== userId) {
       throw new ForbiddenException('Anda tidak memiliki akses untuk menghapus video ini');
     }
 
-    await this.videosRepo.remove(video);
+    // Soft delete
+    await this.videosRepo.softRemove(video);
     return { message: 'Video berhasil dihapus' };
   }
 

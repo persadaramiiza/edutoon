@@ -64,7 +64,8 @@ export class ProfilesService {
   async remove(id: number, userId: number): Promise<{ message: string }> {
     const profile = await this.findOneByUser(id, userId);
 
-    await this.profilesRepo.remove(profile);
+    // Soft delete
+    await this.profilesRepo.softRemove(profile);
     return { message: 'Profile berhasil dihapus' };
   }
 }

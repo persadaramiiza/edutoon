@@ -1,22 +1,39 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const logger = new Logger('Bootstrap');
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+  });
+
+  // Security: Helmet for HTTP headers
+  app.use(helmet());
 
   // Enable CORS
   app.enableCors({
     origin: process.env.FRONTEND_URL || '*',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  // Global Exception Filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
+      forbidNonWhitelisted: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
@@ -26,6 +43,11 @@ async function bootstrap() {
     .setDescription('API untuk platform edukasi webtoon anak')
     .setVersion('1.0')
     .addBearerAuth()
+    .addTag('Auth', 'Authentication endpoints')
+    .addTag('Profiles', 'Profile management')
+    .addTag('Videos', 'Video management')
+    .addTag('Quizzes', 'Quiz management')
+    .addTag('Health', 'Health check endpoints')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
@@ -34,7 +56,8 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`Application running on: http://localhost:${port}`);
-  console.log(`Swagger docs: http://localhost:${port}/api/docs`);
+  logger.log(`🚀 Application running on: http://localhost:${port}`);
+  logger.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
+  logger.log(`❤️ Health check: http://localhost:${port}/api/health`);
 }
 bootstrap();

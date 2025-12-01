@@ -27,7 +27,7 @@ export class WatchHistoryController {
         @Body() dto: SaveProgressDto,
     ) {
         const record = await this.watchHistoryService.saveProgress({
-            userId: user.userId,
+            userId: user.sub,
             profileId: dto.profileId,
             videoId: dto.videoId,
             timestampSeconds: dto.timestampSeconds,
