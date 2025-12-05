@@ -37,7 +37,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      await register(name, email, password, role);
+      await register(email, password, name, role);
       setSuccess('Registration successful! Redirecting...');
       setTimeout(() => {
         router.push('/login');

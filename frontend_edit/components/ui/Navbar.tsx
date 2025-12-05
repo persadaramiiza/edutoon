@@ -22,7 +22,7 @@ export default function Navbar() {
   return (
     <nav
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-[9999] transition-all duration-300',
         isScrolled
           ? 'bg-white/90 backdrop-blur-lg shadow-lg'
           : 'bg-transparent'
@@ -60,12 +60,24 @@ export default function Navbar() {
                   Dashboard
                 </Link>
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-medium">
+                  <div 
+                    onClick={() => {
+                      window.location.href = '/profile';
+                    }}
+                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity p-2 rounded-lg relative z-[9999]"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        window.location.href = '/profile';
+                      }
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-orange-400 to-orange-500 flex items-center justify-center text-white font-bold hover:shadow-lg hover:scale-110 transition-all">
                       {(user.full_name || user.email).charAt(0).toUpperCase()}
                     </div>
                     <span className={cn(
-                      'font-medium',
+                      'font-medium hidden sm:inline',
                       isScrolled ? 'text-gray-800' : 'text-white'
                     )}>
                       {user.full_name || user.email}
@@ -115,7 +127,7 @@ export default function Navbar() {
         {/* Mobile Menu */}
         <div className={cn(
           'md:hidden overflow-hidden transition-all duration-300',
-          isMobileMenuOpen ? 'max-h-64 opacity-100' : 'max-h-0 opacity-0'
+          isMobileMenuOpen ? 'max-h-72 opacity-100' : 'max-h-0 opacity-0'
         )}>
           <div className="py-4 space-y-3 bg-white/95 backdrop-blur-lg rounded-2xl mb-4 px-4">
             {user ? (
@@ -126,6 +138,13 @@ export default function Navbar() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  className="block text-gray-600 hover:text-blue-600 font-medium py-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Profile
                 </Link>
                 <button
                   onClick={() => {

@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfileAge, setNewProfileAge] = useState(5);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const loadProfiles = useCallback(async () => {
     try {
@@ -36,6 +37,10 @@ export default function DashboardPage() {
       console.error('Error loading videos:', error);
     }
   }, [selectedProfile]);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -117,7 +122,7 @@ export default function DashboardPage() {
     return <LoadingPage text="Memuat dashboard..." />;
   }
 
-  if (!user) {
+  if (!user || !isHydrated) {
     return null;
   }
 

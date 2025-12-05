@@ -27,7 +27,13 @@ export interface LoginData {
 
 export const authService = {
   async register(data: RegisterData): Promise<User> {
-    const response = await api.post('/auth/register', data);
+    const payload = {
+      email: data.email,
+      password: data.password,
+      name: data.name || 'User',
+      role: data.role || 'parent',
+    };
+    const response = await api.post('/auth/register', payload);
     return response.data;
   },
 
