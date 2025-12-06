@@ -90,21 +90,6 @@ const parseVideoResponse = (data: any): Video => {
 };
 
 export const videosService = {
-  async getAll(profileId?: number): Promise<Video[]> {
-    const response = await api.get('/videos', {
-      params: {
-        ...(profileId && { profileId: String(profileId) }),
-      },
-    });
-    // Backend returns paginated result with { data, meta }
-    return response.data?.data || response.data || [];
-  },
-
-  async getById(id: number): Promise<Video> {
-    const response = await api.get(`/videos/${id}`);
-    return response.data;
-  },
-
   // ==================== GET ALL VIDEOS ====================
   async getAll(params?: GetVideosParams): Promise<PaginatedVideos> {
     try {
