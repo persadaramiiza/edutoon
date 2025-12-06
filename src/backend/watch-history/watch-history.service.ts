@@ -38,13 +38,14 @@ export class WatchHistoryService {
         const marginSeconds = 5;
         let autoCompleted = false;
 
-        if (
-            typeof video.duration_seconds === 'number' &&
-            video.duration_seconds > 0 &&
-            timestampSeconds >= video.duration_seconds - marginSeconds
-        ) {
-            autoCompleted = true;
-        }
+        // ℹ️ Note: Video entity doesn't have duration_seconds, so we can't auto-complete
+        // if (
+        //     typeof video.duration_seconds === 'number' &&
+        //     video.duration_seconds > 0 &&
+        //     timestampSeconds >= video.duration_seconds - marginSeconds
+        // ) {
+        //     autoCompleted = true;
+        // }
 
         let record = await this.watchRepo.findOne({
             where: { profile_id: profileId, video_id: videoId },
@@ -103,11 +104,12 @@ export class WatchHistoryService {
         const rows = await qb.getMany();
 
         return rows.map((row) => {
-            const duration = row.video.duration_seconds || 0;
+            // ℹ️ Note: Using default 0 since Video entity doesn't have duration
+            const duration = 0;
 
             let percent = 0;
-            if (duration > 0) {
-                percent = (row.last_position_seconds / duration) * 100;
+            if (row.last_position_seconds > 0) {
+                percent = Math.min((row.last_position_seconds / 3600) * 100, 100);
             }
 
             // batas maksimum 100%
@@ -130,7 +132,7 @@ export class WatchHistoryService {
                     title: row.video.title,
                     description: row.video.description,
                     thumbnail_url: row.video.thumbnail_url,
-                    duration_seconds: duration,
+                    duration_seconds: 0,
                     min_age: row.video.min_age,
                 },
             };
@@ -151,11 +153,12 @@ export class WatchHistoryService {
             .getMany();
 
         return rows.map((row) => {
-            const duration = row.video.duration_seconds || 0;
+            // ℹ️ Note: Using default 0 since Video entity doesn't have duration
+            const duration = 0;
 
             let percent = 0;
-            if (duration > 0) {
-                percent = Math.min((row.last_position_seconds / duration) * 100, 100);
+            if (row.last_position_seconds > 0) {
+                percent = Math.min((row.last_position_seconds / 3600) * 100, 100);
             }
             percent = Math.round(percent * 100) / 100;
 
@@ -171,7 +174,7 @@ export class WatchHistoryService {
                     title: row.video.title,
                     description: row.video.description,
                     thumbnail_url: row.video.thumbnail_url,
-                    duration_seconds: row.video.duration_seconds,
+                    duration_seconds: 0,
                     min_age: row.video.min_age,
                 },
             };

@@ -19,22 +19,57 @@ export default function DashboardPage() {
   const [newProfileName, setNewProfileName] = useState('');
   const [newProfileAge, setNewProfileAge] = useState(5);
   const [isHydrated, setIsHydrated] = useState(false);
+  // ✅ ADD MISSING STATES
+  const [loadingVideos, setLoadingVideos] = useState(false);
+  const [error, setError] = useState('');
 
   const loadProfiles = useCallback(async () => {
     try {
       const data = await profilesService.getAll();
       setProfiles(data);
+      console.log('✅ Profiles loaded:', data.length);
     } catch (error) {
-      console.error('Error loading profiles:', error);
+      console.error('❌ Error loading profiles:', error);
     }
   }, []);
 
+  // ✅ FIX: Load videos tanpa profileId di query, filter di frontend
   const loadVideos = useCallback(async () => {
+    if (!selectedProfile) {
+      console.warn('⚠️ No profile selected');
+      setVideos([]);
+      return;
+    }
+
     try {
-      const data = await videosService.getAll(selectedProfile?.id);
-      setVideos(data);
-    } catch (error) {
-      console.error('Error loading videos:', error);
+      setLoadingVideos(true);
+      setError('');
+      console.log('📥 Loading videos for profile:', selectedProfile.id, 'age:', selectedProfile.age_group);
+
+      // ✅ Fetch ALL published videos (tanpa profileId di query)
+      const result = await videosService.getAll({
+        page: 1,
+        limit: 50,
+      });
+
+      // ✅ Filter videos berdasarkan age group profile di frontend
+      const filteredVideos = (result.data || []).filter(video => {
+        const videoMinAge = video.min_age || 0;
+        const videoMaxAge = video.max_age || 18;
+        const profileAge = selectedProfile.age_group || 0;
+        
+        return profileAge >= videoMinAge && profileAge <= videoMaxAge;
+      });
+
+      console.log('✅ Videos fetched:', result.data.length, 'filtered:', filteredVideos.length);
+      setVideos(filteredVideos);
+    } catch (error: any) {
+      console.error('❌ Error loading videos:', error);
+      console.error('Error message:', error.response?.data?.message || error.message);
+      setError('Gagal memuat video');
+      setVideos([]);
+    } finally {
+      setLoadingVideos(false);
     }
   }, [selectedProfile]);
 
@@ -44,49 +79,28 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isLoading && !user) {
+      console.log('⚠️ Not authenticated, redirecting');
       router.push('/login');
     }
   }, [isLoading, user, router]);
 
   useEffect(() => {
-    if (user?.role === 'parent') {
-      let ignore = false;
-      (async () => {
-        try {
-          const data = await profilesService.getAll();
-          if (!ignore) {
-            setProfiles(data);
-          }
-        } catch (error) {
-          console.error('Error loading profiles:', error);
-        }
-      })();
-      return () => {
-        ignore = true;
-      };
-    } else if (user?.role === 'creator') {
+    if (user?.role === 'parent' && isHydrated) {
+      console.log('👨‍👩‍👧 Loading profiles for parent');
+      loadProfiles();
+    } else if (user?.role === 'creator' && isHydrated) {
+      console.log('🎬 User is creator, redirecting');
       router.push('/creator');
     }
-  }, [user, router]);
+  }, [user, isHydrated, router, loadProfiles]);
 
+  // ✅ LOAD VIDEOS WHEN PROFILE CHANGES
   useEffect(() => {
-    if (selectedProfile) {
-      let ignore = false;
-      (async () => {
-        try {
-          const data = await videosService.getAll(selectedProfile?.id);
-          if (!ignore) {
-            setVideos(data);
-          }
-        } catch (error) {
-          console.error('Error loading videos:', error);
-        }
-      })();
-      return () => {
-        ignore = true;
-      };
+    if (selectedProfile && isHydrated) {
+      console.log('🎯 Profile selected, loading videos');
+      loadVideos();
     }
-  }, [selectedProfile]);
+  }, [selectedProfile, isHydrated, loadVideos]);
 
   const handleAddProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +112,10 @@ export default function DashboardPage() {
       setNewProfileName('');
       setNewProfileAge(5);
       setShowAddProfile(false);
-      loadProfiles();
+      await loadProfiles();
     } catch (error) {
-      console.error('Error adding profile:', error);
+      console.error('❌ Error adding profile:', error);
+      setError('Gagal menambah profil');
     }
   };
 
@@ -108,25 +123,25 @@ export default function DashboardPage() {
     if (confirm('Yakin ingin menghapus profil ini?')) {
       try {
         await profilesService.delete(id);
-        loadProfiles();
+        await loadProfiles();
         if (selectedProfile?.id === id) {
           setSelectedProfile(null);
         }
       } catch (error) {
-        console.error('Error deleting profile:', error);
+        console.error('❌ Error deleting profile:', error);
       }
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !isHydrated) {
     return <LoadingPage text="Memuat dashboard..." />;
   }
 
-  if (!user || !isHydrated) {
+  if (!user) {
     return null;
   }
 
-  // Profile Selection View
+  // ==================== PROFILE SELECTION VIEW ====================
   if (!selectedProfile) {
     return (
       <div className="min-h-screen bg-[#FFF9F0] font-sans text-[#4A4A4A] relative overflow-hidden">
@@ -174,58 +189,67 @@ export default function DashboardPage() {
               <p className="text-[#8B7355] font-bold text-lg">Pilih profil untuk memulai belajar</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {profiles.map((profile, index) => (
-                <div 
-                  key={profile.id} 
-                  className="relative group animate-slide-up"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <button
-                    onClick={() => setSelectedProfile(profile)}
-                    className="w-full flex flex-col items-center p-6 rounded-[1.5rem] hover:bg-[#FFF9F0] border-2 border-transparent hover:border-[#FFE0B2] transition-all duration-300 group-hover:scale-105"
+            {profiles.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-[#8B7355] font-bold mb-4">Belum ada profil anak</p>
+                <Button onClick={() => setShowAddProfile(true)} className="bg-[#FF7A00] text-white font-black rounded-full px-8 py-3">
+                  Buat Profil Pertama
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {profiles.map((profile, index) => (
+                  <div 
+                    key={profile.id} 
+                    className="relative group animate-slide-up"
+                    style={{ animationDelay: `${index * 100}ms` }}
                   >
-                    <div className="relative">
-                      <div className="w-24 h-24 sm:w-28 sm:h-28 bg-[#FFF5E5] rounded-full flex items-center justify-center text-4xl sm:text-5xl text-[#FF7A00] mb-4 shadow-md group-hover:shadow-xl transition-shadow border-4 border-white">
-                        {profile.name.charAt(0).toUpperCase()}
+                    <button
+                      onClick={() => setSelectedProfile(profile)}
+                      className="w-full flex flex-col items-center p-6 rounded-[1.5rem] hover:bg-[#FFF9F0] border-2 border-transparent hover:border-[#FFE0B2] transition-all duration-300 group-hover:scale-105"
+                    >
+                      <div className="relative">
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-[#FFF5E5] rounded-full flex items-center justify-center text-4xl sm:text-5xl text-[#FF7A00] mb-4 shadow-md group-hover:shadow-xl transition-shadow border-4 border-white">
+                          {profile.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#D94D2B] rounded-full flex items-center justify-center text-white text-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                          ▶
+                        </div>
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#D94D2B] rounded-full flex items-center justify-center text-white text-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                        ▶
-                      </div>
-                    </div>
-                    <span className="font-black text-[#4A4A4A] text-lg mt-2">{profile.name}</span>
-                    <span className="text-sm text-[#8B7355] font-bold flex items-center gap-1">
-                      <span>🎂</span> {profile.age_group} tahun
-                    </span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteProfile(profile.id);
-                    }}
-                    className="absolute top-2 right-2 bg-[#D94D2B] text-white w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-[#B93D1B] shadow-lg flex items-center justify-center"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              ))}
+                      <span className="font-black text-[#4A4A4A] text-lg mt-2">{profile.name}</span>
+                      <span className="text-sm text-[#8B7355] font-bold flex items-center gap-1">
+                        <span>🎂</span> {profile.age_group} tahun
+                      </span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProfile(profile.id);
+                      }}
+                      className="absolute top-2 right-2 bg-[#D94D2B] text-white w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-[#B93D1B] shadow-lg flex items-center justify-center"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
 
-              {/* Add Profile Button */}
-              <button
-                onClick={() => setShowAddProfile(true)}
-                className="flex flex-col items-center p-6 rounded-[1.5rem] border-4 border-dashed border-[#FFE0B2] hover:border-[#FF7A00] hover:bg-[#FFF5E5] transition-all duration-300 group animate-slide-up"
-                style={{ animationDelay: `${profiles.length * 100}ms` }}
-              >
-                <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center mb-4 group-hover:bg-white transition-colors border-4 border-transparent">
-                  <svg className="w-12 h-12 text-[#FFE0B2] group-hover:text-[#FF7A00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <span className="font-black text-[#8B7355] group-hover:text-[#FF7A00] transition-colors mt-2">Tambah Profil</span>
-              </button>
-            </div>
+                {/* Add Profile Button */}
+                <button
+                  onClick={() => setShowAddProfile(true)}
+                  className="flex flex-col items-center p-6 rounded-[1.5rem] border-4 border-dashed border-[#FFE0B2] hover:border-[#FF7A00] hover:bg-[#FFF5E5] transition-all duration-300 group animate-slide-up"
+                  style={{ animationDelay: `${profiles.length * 100}ms` }}
+                >
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center mb-4 group-hover:bg-white transition-colors border-4 border-transparent">
+                    <svg className="w-12 h-12 text-[#FFE0B2] group-hover:text-[#FF7A00] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </div>
+                  <span className="font-black text-[#8B7355] group-hover:text-[#FF7A00] transition-colors mt-2">Tambah Profil</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Tips Section */}
@@ -261,24 +285,22 @@ export default function DashboardPage() {
                   </svg>
                 </button>
               </div>
+              {error && (
+                <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-2 rounded-lg mb-4 font-bold text-sm">
+                  {error}
+                </div>
+              )}
               <form onSubmit={handleAddProfile} className="space-y-6">
                 <div className="space-y-2">
                   <label className="block text-sm font-black text-[#4A4A4A]">Nama Anak</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={newProfileName}
-                      onChange={(e) => setNewProfileName(e.target.value)}
-                      placeholder="Masukkan nama anak"
-                      required
-                      className="w-full px-4 py-3 pl-10 bg-[#FFF9F0] border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] placeholder-[#8B7355]/50 focus:outline-none focus:border-[#FF7A00] focus:ring-0 font-bold transition-colors"
-                    />
-                    <div className="absolute left-3 top-3.5 text-[#8B7355]">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    placeholder="Masukkan nama anak"
+                    required
+                    className="w-full px-4 py-3 bg-[#FFF9F0] border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] placeholder-[#8B7355]/50 focus:outline-none focus:border-[#FF7A00] focus:ring-0 font-bold transition-colors"
+                  />
                 </div>
                 
                 <div>
@@ -320,7 +342,7 @@ export default function DashboardPage() {
     );
   }
 
-  // Video List View
+  // ==================== VIDEO LIST VIEW ====================
   return (
     <div className="min-h-screen bg-[#FFF9F0] font-sans text-[#4A4A4A]">
       {/* Header */}
@@ -375,7 +397,12 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {videos.length === 0 ? (
+        {loadingVideos ? (
+          <div className="bg-white rounded-[2rem] shadow-xl border-b-8 border-[#FFE0B2] p-12 text-center animate-pulse">
+            <div className="text-4xl mb-4">⏳</div>
+            <p className="text-[#8B7355] font-bold">Sedang memuat video...</p>
+          </div>
+        ) : videos.length === 0 ? (
           <div className="bg-white rounded-[2rem] shadow-xl border-b-8 border-[#FFE0B2] p-12 text-center animate-scale-in">
             <div className="text-6xl mb-4">🎬</div>
             <h3 className="text-xl font-black text-[#4A4A4A] mb-2">Belum Ada Video</h3>

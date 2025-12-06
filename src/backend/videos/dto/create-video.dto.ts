@@ -1,63 +1,58 @@
 import {
   IsNotEmpty,
+  IsString,
   IsOptional,
-  IsEnum,
-  IsUrl,
   IsNumber,
+  IsEnum,
   Min,
   Max,
-  IsString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { VideoPlatform } from '../video.entity';
 
 export class CreateVideoDto {
-  @ApiProperty({ example: 'Belajar Matematika Dasar' })
+  @ApiProperty({ example: 'Belajar Perkalian' })
   @IsNotEmpty()
   @IsString()
   title: string;
 
-  @ApiProperty({ example: 'Video pembelajaran untuk anak', required: false })
+  @ApiProperty({ example: 'Video tentang perkalian untuk anak SD' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({ example: 'https://www.youtube.com/watch?v=abc123' })
+  @ApiProperty({
+    example: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  })
   @IsNotEmpty()
-  @IsUrl()
+  @IsString()
   video_url: string;
 
-  @ApiProperty({ enum: VideoPlatform, required: false })
+  @ApiProperty({ example: 'https://img.youtube.com/vi/dQw4w9WgXcQ/default.jpg' })
   @IsOptional()
-  @IsEnum(VideoPlatform)
-  platform?: VideoPlatform;
+  @IsString()
+  thumbnail_url?: string; // ✅ ADD THIS
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ enum: ['youtube', 'vimeo', 'native'], default: 'youtube' })
   @IsOptional()
-  @IsUrl()
-  thumbnail_url?: string;
+  @IsEnum(['youtube', 'vimeo', 'native'])
+  platform?: 'youtube' | 'vimeo' | 'native';
 
-  @ApiProperty({ example: 300, required: false })
-  @IsOptional()
-  @IsNumber()
-  duration_seconds?: number;
-
-  @ApiProperty({ example: 5, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(18)
-  min_age?: number;
-
-  @ApiProperty({ example: 10, required: false })
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(18)
-  max_age?: number;
-
-  @ApiProperty({ example: 'matematika', required: false })
+  @ApiProperty({ example: 'Matematika' })
   @IsOptional()
   @IsString()
   category?: string;
+
+  @ApiProperty({ example: 5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(18)
+  min_age?: number;
+
+  @ApiProperty({ example: 12 })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(18)
+  max_age?: number;
 }

@@ -2,25 +2,28 @@ import api from './api';
 
 export interface QuizOption {
   id: number;
-  quizId: number;
+  quiz_id: number;
   option_text: string;
-  is_correct?: boolean;
+  is_correct: boolean;
 }
 
 export interface Quiz {
   id: number;
-  videoId: number;
+  video_id: number;
   question_text: string;
   timestamp_seconds: number;
   options: QuizOption[];
+  created_at: string;
 }
 
 export interface QuizAttempt {
   id: number;
   quiz_id: number;
   profile_id: number;
+  selected_option_id: number;
   is_correct: boolean;
-  attempted_at: string;
+  points_earned: number;
+  created_at: string;
 }
 
 export interface SubmitQuizDto {
@@ -29,61 +32,125 @@ export interface SubmitQuizDto {
   selectedOptionId: number;
 }
 
-export interface CreateQuizOptionDto {
-  option_text: string;
-  is_correct: boolean;
-}
-
-export interface CreateQuizDto {
-  videoId: number;
-  timestamp_seconds: number;
-  question_text: string;
-  options: CreateQuizOptionDto[];
-}
+// ==================== HELPER FUNCTION ====================
+const parseQuizResponse = (data: any): Quiz => {
+  if (!data) throw new Error('Invalid quiz data');
+  return {
+    id: data.id,
+    video_id: data.video_id,
+    question_text: data.question_text || '',
+    timestamp_seconds: data.timestamp_seconds || 0,
+    options: Array.isArray(data.options) ? data.options : [],
+    created_at: data.created_at || new Date().toISOString(),
+  };
+};
 
 export const quizzesService = {
-  // Get quizzes by video ID
-  getByVideoId: async (videoId: number): Promise<Quiz[]> => {
-    const response = await api.get(`/videos/${videoId}/quizzes`);
-    return response.data;
-  },
-
-  // Get quiz by ID
-  getById: async (quizId: number): Promise<Quiz> => {
-    const response = await api.get(`/quizzes/${quizId}`);
-    return response.data;
-  },
-
-  // Submit quiz answer
-  submitAnswer: async (dto: SubmitQuizDto): Promise<QuizAttempt> => {
-    const response = await api.post('/quiz/submit', dto);
-    return response.data;
-  },
-
-  // Get quiz attempts by profile
-  getAttemptsByProfile: async (profileId: number): Promise<QuizAttempt[]> => {
-    const response = await api.get(`/profiles/${profileId}/quiz-attempts`);
-    return response.data;
-  },
-
-  // Check if quiz already attempted
-  checkAttempt: async (quizId: number, profileId: number): Promise<QuizAttempt | null> => {
+  // ==================== GET BY VIDEO ID ====================
+  async getByVideoId(videoId: number): Promise<Quiz[]> {
     try {
-      const response = await api.get(`/quizzes/${quizId}/attempt/${profileId}`);
-      return response.data;
-    } catch {
+      console.log(`📥 Fetching quizzes for video ${videoId}`);
+      const response = await api.get(`/videos/${videoId}/quizzes`);
+
+      if (!response.data) {
+        console.log('ℹ️ Empty response');
+        return [];
+      }
+
+      const data = response.data;
+      console.log('✅ Response type:', typeof data, 'is array:', Array.isArray(data));
+
+      // Handle array response
+      if (Array.isArray(data)) {
+        return data.map(parseQuizResponse);
+      }
+
+      // Handle { data: [...] } response
+      if (data.data && Array.isArray(data.data)) {
+        return data.data.map(parseQuizResponse);
+      }
+
+      console.warn('⚠️ Unexpected response format:', data);
+      return [];
+    } catch (error: any) {
+      console.error('❌ Error fetching quizzes:', error);
+      console.error('Status:', error.response?.status);
+      console.error('Data:', error.response?.data);
+
+      // Don't throw, just return empty
+      return [];
+    }
+  },
+
+  // ==================== GET BY ID ====================
+  async getById(id: number): Promise<Quiz | null> {
+    try {
+      console.log(`📥 Fetching quiz ${id}`);
+      const response = await api.get(`/quizzes/${id}`);
+      const quiz = parseQuizResponse(response.data);
+      console.log('✅ Quiz loaded');
+      return quiz;
+    } catch (error) {
+      console.error(`❌ Error fetching quiz ${id}:`, error);
       return null;
     }
   },
 
-  // Create quiz (creator only)
-  create: async (dto: CreateQuizDto): Promise<Quiz> => {
-    const response = await api.post('/quizzes', dto);
-    return response.data;
+  // ==================== CREATE QUIZ ====================
+  async create(dto: any): Promise<Quiz | null> {
+    try {
+      console.log('📝 Creating quiz:', dto);
+      const response = await api.post('/quizzes', dto);
+      console.log('✅ Quiz created:', response.data.id);
+      return parseQuizResponse(response.data);
+    } catch (error) {
+      console.error('❌ Error creating quiz:', error);
+      return null;
+    }
   },
 
-  // Delete quiz (creator only)
-  delete: async (quizId: number): Promise<void> => {
-    await api.delete(`/quizzes/${quizId}`);
+  // ==================== SUBMIT ANSWER ====================
+  async submitAnswer(dto: SubmitQuizDto): Promise<QuizAttempt | null> {
+    try {
+      console.log('📤 Submitting quiz answer:', dto);
+      const response = await api.post('/quiz/submit', dto);
+      console.log('✅ Answer submitted:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error submitting answer:', error);
+      return null;
+    }
+  },
+
+  // ==================== GET ATTEMPTS ====================
+  async getAttempts(profileId: number): Promise<QuizAttempt[]> {
+    try {
+      console.log(`📥 Fetching attempts for profile ${profileId}`);
+      const response = await api.get(`/profiles/${profileId}/quiz-attempts`);
+
+      if (!response.data) return [];
+
+      const data = response.data;
+      if (Array.isArray(data)) return data;
+      if (data.data && Array.isArray(data.data)) return data.data;
+
+      return [];
+    } catch (error) {
+      console.error('❌ Error fetching attempts:', error);
+      return [];
+    }
+  },
+
+  // ==================== DELETE QUIZ ====================
+  async delete(id: number): Promise<boolean> {
+    try {
+      console.log(`🗑️ Deleting quiz ${id}`);
+      await api.delete(`/quizzes/${id}`);
+      console.log('✅ Quiz deleted');
+      return true;
+    } catch (error) {
+      console.error('❌ Error deleting quiz:', error);
+      return false;
+    }
   },
 };

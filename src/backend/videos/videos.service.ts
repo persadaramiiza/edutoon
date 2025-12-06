@@ -2,15 +2,19 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Video, VideoPlatform, VideoStatus } from './video.entity';
+import { Repository, Like, Between } from 'typeorm';
+import { Video } from './video.entity';
+import { VideoProgress } from './video-progress.entity';
 import { ProfilesService } from '../profiles/profiles.service';
+import { QuizzesService } from '../quizzes/quizzes.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
-import { PaginationDto, createPaginatedResult } from '../common/dto/pagination.dto';
+import { SaveVideoProgressDto } from './dto/save-video-progress.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class VideosService {
@@ -18,200 +22,270 @@ export class VideosService {
 
   constructor(
     @InjectRepository(Video)
-    private readonly videosRepo: Repository<Video>,
+    private readonly videoRepo: Repository<Video>,
+    @InjectRepository(VideoProgress)
+    private readonly progressRepo: Repository<VideoProgress>,
     private readonly profilesService: ProfilesService,
+    private readonly quizzesService: QuizzesService,
   ) {}
 
-  // Extract video ID dari URL
-  private extractVideoId(url: string, platform: VideoPlatform): string | undefined {
-    switch (platform) {
-      case VideoPlatform.YOUTUBE:
-        const ytRegex =
-          /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-        const ytMatch = url.match(ytRegex);
-        return ytMatch ? ytMatch[1] : undefined;
+  // ==================== CREATE ====================
+  async create(dto: CreateVideoDto, userId: number): Promise<Video> {
+    console.log(`✨ Creating video: ${dto.title}`);
 
-      case VideoPlatform.VIMEO:
-        const vimeoRegex = /vimeo\.com\/(\d+)/;
-        const vimeoMatch = url.match(vimeoRegex);
-        return vimeoMatch ? vimeoMatch[1] : undefined;
+    const video = this.videoRepo.create({
+      ...dto,
+      creator_id: userId,
+      status: 'draft',
+      view_count: 0,
+    });
 
-      default:
-        return undefined;
-    }
+    const saved = await this.videoRepo.save(video);
+    console.log(`✅ Video created with ID: ${saved.id}`);
+    return saved;
   }
 
-  // Auto-detect platform dari URL
-  private detectPlatform(url: string): VideoPlatform {
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      return VideoPlatform.YOUTUBE;
-    } else if (url.includes('vimeo.com')) {
-      return VideoPlatform.VIMEO;
-    }
-    return VideoPlatform.NATIVE;
-  }
+  // ==================== GET ALL ====================
+  async getAll(
+    pagination: PaginationDto,
+    profileId?: number,
+    search?: string,
+    category?: string,
+  ): Promise<{ data: Video[]; total: number; page: number; limit: number }> {
+    console.log(`📥 Fetching videos:`, { profileId, search, category, ...pagination });
 
-  // Generate thumbnail URL otomatis
-  private generateThumbnailUrl(
-    videoId: string | undefined,
-    platform: VideoPlatform,
-  ): string | undefined {
-    if (!videoId) return undefined;
-    
-    switch (platform) {
-      case VideoPlatform.YOUTUBE:
-        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-      default:
-        return undefined;
-    }
-  }
-
-  // List video, optional filter by profile with pagination
-  async findAll(options?: { 
-    profileId?: number; 
-    currentUserId?: number;
-    pagination?: PaginationDto;
-  }) {
-    const qb = this.videosRepo.createQueryBuilder('v');
-
-    // Hanya tampilkan video PUBLISHED
-    qb.where('v.status = :status', { status: VideoStatus.PUBLISHED });
-
-    if (options?.profileId && options?.currentUserId) {
-      const profile = await this.profilesService.findOne(options.profileId);
-
-      if (!profile) {
-        throw new NotFoundException('Profile not found');
-      }
-      if (profile.userId !== options.currentUserId) {
-        throw new ForbiddenException('Profile does not belong to this user');
-      }
-
-      qb.andWhere('v.min_age <= :age', { age: profile.age_group });
-    }
-
-    qb.orderBy('v.created_at', 'DESC');
-
-    // Apply pagination
-    const page = options?.pagination?.page || 1;
-    const limit = options?.pagination?.limit || 10;
+    const page = pagination.page || 1;
+    const limit = Math.min(pagination.limit || 10, 100);
     const skip = (page - 1) * limit;
 
-    const [videos, total] = await qb
-      .skip(skip)
+    const query = this.videoRepo.createQueryBuilder('v');
+
+    // Only published videos
+    query.where('v.status = :status', { status: 'published' });
+
+    // Filter by age group
+    if (profileId) {
+      const profile = await this.profilesService.findOne(profileId);
+      if (profile) {
+        console.log(`🎯 Filtering videos for age: ${profile.age_group}`);
+        
+        query.andWhere('v.min_age <= :age AND v.max_age >= :age', {
+          age: profile.age_group,
+        });
+      }
+    }
+
+    // Search by title/description
+    if (search) {
+      query.andWhere(
+        '(v.title LIKE :search OR v.description LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Filter by category
+    if (category) {
+      query.andWhere('v.category = :category', { category });
+    }
+
+    // Load creator info
+    query.leftJoinAndSelect('v.creator', 'creator');
+
+    // Sort by created date
+    query.orderBy('v.created_at', 'DESC');
+
+    const [data, total] = await query
       .take(limit)
+      .skip(skip)
       .getManyAndCount();
 
-    return createPaginatedResult(videos, total, page, limit);
+    console.log(`✅ Found ${total} videos (page: ${page})`);
+    return { data, total, page, limit };
   }
 
-  async findOneById(id: number) {
-    const video = await this.videosRepo.findOne({
+  // ==================== GET BY CREATOR ====================
+  async getByCreator(userId: number): Promise<Video[]> {
+    console.log(`📥 Fetching videos for creator ${userId}`);
+
+    const videos = await this.videoRepo.find({
+      where: { creator_id: userId },
+      relations: ['creator'],
+      order: { created_at: 'DESC' },
+    });
+
+    console.log(`✅ Found ${videos.length} videos`);
+    return videos;
+  }
+
+  // ==================== GET BY ID ====================
+  async findById(id: number): Promise<Video> {
+    const video = await this.videoRepo.findOne({
       where: { id },
       relations: ['creator'],
     });
+
     if (!video) {
-      throw new NotFoundException('Video not found');
+      throw new NotFoundException(`Video dengan ID ${id} tidak ditemukan`);
     }
 
-    // Increment view count
-    await this.videosRepo.increment({ id }, 'view_count', 1);
-
+    console.log(`✅ Video found: ${video.title}`);
     return video;
   }
 
-  async create(dto: CreateVideoDto, creatorId?: number) {
-    // Auto-detect platform jika tidak diisi
-    const platform = dto.platform || this.detectPlatform(dto.video_url);
+  // ==================== UPDATE ====================
+  async update(id: number, dto: UpdateVideoDto, userId: number): Promise<Video> {
+    console.log(`📝 Updating video ${id}`);
 
-    // Extract video ID
-    const videoId = this.extractVideoId(dto.video_url, platform);
+    const video = await this.findById(id);
 
-    // Auto-generate thumbnail jika tidak diisi
-    const thumbnailUrl = dto.thumbnail_url || this.generateThumbnailUrl(videoId, platform);
-
-    const video = this.videosRepo.create({
-      title: dto.title,
-      description: dto.description,
-      video_url: dto.video_url,
-      video_id: videoId,
-      thumbnail_url: thumbnailUrl,
-      platform: platform,
-      duration_seconds: dto.duration_seconds,
-      min_age: dto.min_age ?? 0,
-      max_age: dto.max_age,
-      category: dto.category,
-      creator_id: creatorId,
-      status: VideoStatus.DRAFT,
-    });
-
-    return this.videosRepo.save(video);
-  }
-
-  async update(id: number, dto: UpdateVideoDto, userId: number) {
-    const video = await this.findOneById(id);
-
-    // Cek ownership - video harus milik user ini
+    // Check ownership
     if (video.creator_id !== userId) {
-      throw new ForbiddenException('Anda tidak memiliki akses untuk mengubah video ini');
+      throw new ForbiddenException('Anda tidak bisa mengedit video ini');
     }
 
-    // Update platform & video_id jika URL berubah
-    if (dto.video_url) {
-      const platform = dto.platform || this.detectPlatform(dto.video_url);
-      const videoId = this.extractVideoId(dto.video_url, platform);
-
-      video.platform = platform;
-      video.video_id = videoId;
-
-      // Update thumbnail jika tidak diisi
-      if (!dto.thumbnail_url) {
-        video.thumbnail_url = this.generateThumbnailUrl(videoId, platform);
-      }
+    // Can only edit draft videos
+    if (video.status !== 'draft') {
+      throw new BadRequestException('Hanya draft video yang bisa diedit');
     }
 
     Object.assign(video, dto);
-    return this.videosRepo.save(video);
+    const updated = await this.videoRepo.save(video);
+
+    console.log(`✅ Video updated`);
+    return updated;
   }
 
-  async publish(id: number, userId: number) {
-    const video = await this.findOneById(id);
+  // ==================== PUBLISH ====================
+  async publish(id: number, userId: number): Promise<Video> {
+    console.log(`📤 Publishing video ${id}`);
+
+    const video = await this.findById(id);
 
     if (video.creator_id !== userId) {
-      throw new ForbiddenException('Anda tidak memiliki akses untuk mempublish video ini');
+      throw new ForbiddenException('Anda tidak bisa publish video ini');
     }
 
-    video.status = VideoStatus.PUBLISHED;
-    return this.videosRepo.save(video);
+    video.status = 'published';
+    video.published_at = new Date();
+
+    const updated = await this.videoRepo.save(video);
+    console.log(`✅ Video published`);
+    return updated;
   }
 
-  async archive(id: number, userId: number) {
-    const video = await this.findOneById(id);
+  // ==================== ARCHIVE ====================
+  async archive(id: number, userId: number): Promise<Video> {
+    console.log(`📦 Archiving video ${id}`);
+
+    const video = await this.findById(id);
 
     if (video.creator_id !== userId) {
-      throw new ForbiddenException('Anda tidak memiliki akses untuk mengarsipkan video ini');
+      throw new ForbiddenException('Anda tidak bisa archive video ini');
     }
 
-    video.status = VideoStatus.ARCHIVED;
-    return this.videosRepo.save(video);
+    video.status = 'archived';
+    const updated = await this.videoRepo.save(video);
+
+    console.log(`✅ Video archived`);
+    return updated;
   }
 
-  async remove(id: number, userId: number) {
-    const video = await this.findOneById(id);
+  // ==================== SAVE PROGRESS ====================
+  async saveProgress(
+    videoId: number,
+    dto: SaveVideoProgressDto,
+    userId: number,
+  ): Promise<VideoProgress> {
+    console.log(`💾 Saving progress: video ${videoId}, profile ${dto.profileId}`);
 
-    if (video.creator_id !== userId) {
-      throw new ForbiddenException('Anda tidak memiliki akses untuk menghapus video ini');
+    // Verify profile ownership
+    const profile = await this.profilesService.findOneByUser(dto.profileId, userId);
+    if (!profile) {
+      throw new ForbiddenException('Profile bukan milik Anda');
     }
 
-    // Soft delete
-    await this.videosRepo.softRemove(video);
-    return { message: 'Video berhasil dihapus' };
-  }
+    // Verify video exists
+    await this.findById(videoId);
 
-  async findByCreator(creatorId: number) {
-    return this.videosRepo.find({
-      where: { creator_id: creatorId },
-      order: { created_at: 'DESC' },
+    let progress = await this.progressRepo.findOne({
+      where: {
+        video_id: videoId,
+        profile_id: dto.profileId,
+      },
     });
+
+    if (!progress) {
+      progress = this.progressRepo.create({
+        video_id: videoId,
+        profile_id: dto.profileId,
+      });
+    }
+
+    progress.timestamp_seconds = dto.timestampSeconds;
+    progress.is_completed = dto.isCompleted || false;
+    progress.updated_at = new Date();
+
+    const saved = await this.progressRepo.save(progress);
+    console.log(`✅ Progress saved at ${dto.timestampSeconds}s`);
+    return saved;
+  }
+
+  // ==================== GET PROGRESS ====================
+  async getProgress(
+    videoId: number,
+    profileId: number,
+    userId: number,
+  ): Promise<VideoProgress | null> {
+    console.log(`📊 Getting progress: video ${videoId}, profile ${profileId}`);
+
+    // Verify profile ownership
+    const profile = await this.profilesService.findOneByUser(profileId, userId);
+    if (!profile) {
+      throw new ForbiddenException('Profile bukan milik Anda');
+    }
+
+    const progress = await this.progressRepo.findOne({
+      where: { video_id: videoId, profile_id: profileId },
+    });
+
+    if (progress) {
+      console.log(`✅ Progress found at ${progress.timestamp_seconds}s`);
+    } else {
+      console.log(`ℹ️ No progress found`);
+    }
+
+    return progress || null;
+  }
+
+  // ==================== GET QUIZZES BY VIDEO ====================
+  async getQuizzes(videoId: number): Promise<any[]> {
+    console.log(`📥 Fetching quizzes for video ${videoId}`);
+    return this.quizzesService.getQuizzesForVideo(videoId);
+  }
+
+  // ==================== INCREMENT VIEW ====================
+  async incrementView(id: number): Promise<Video> {
+    console.log(`👁 Incrementing view for video ${id}`);
+
+    const video = await this.findById(id);
+    video.view_count = (video.view_count || 0) + 1;
+
+    const updated = await this.videoRepo.save(video);
+    console.log(`✅ View count: ${updated.view_count}`);
+    return updated;
+  }
+
+  // ==================== DELETE ====================
+  async delete(id: number, userId: number): Promise<void> {
+    console.log(`🗑️ Deleting video ${id}`);
+
+    const video = await this.findById(id);
+
+    if (video.creator_id !== userId) {
+      throw new ForbiddenException('Anda tidak bisa delete video ini');
+    }
+
+    await this.videoRepo.remove(video);
+    console.log(`✅ Video deleted`);
   }
 }

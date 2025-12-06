@@ -1,8 +1,7 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateVideoDto } from './create-video.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUrl, IsEnum } from 'class-validator';
-import { VideoPlatform } from '../video.entity';
+import { IsOptional, IsString, IsUrl, IsIn } from 'class-validator';
 
 export class UpdateVideoDto extends PartialType(CreateVideoDto) {
   @ApiPropertyOptional()
@@ -10,10 +9,10 @@ export class UpdateVideoDto extends PartialType(CreateVideoDto) {
   @IsString()
   video_url?: string;
 
-  @ApiPropertyOptional({ enum: VideoPlatform })
+  @ApiPropertyOptional({ enum: ['youtube', 'vimeo', 'native'] })
   @IsOptional()
-  @IsEnum(VideoPlatform)
-  platform?: VideoPlatform;
+  @IsIn(['youtube', 'vimeo', 'native'])
+  platform?: 'youtube' | 'vimeo' | 'native';
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -1,19 +1,23 @@
 import {
   Injectable,
   NotFoundException,
+  ForbiddenException,
+  ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Quiz } from './quiz.entity';
 import { QuizOption } from './quiz-option.entity';
 import { QuizAttempt } from './quiz-attempt.entity';
-import { SubmitQuizDto } from './dto/submit-quiz.dto';
-import { CreateQuizDto } from './dto/create-quiz.dto';
 import { ProfilesService } from '../profiles/profiles.service';
+import { SubmitQuizDto } from './dto/submit-quiz.dto';
 
 @Injectable()
 export class QuizzesService {
+  private readonly logger = new Logger(QuizzesService.name);
+
   constructor(
     @InjectRepository(Quiz)
     private readonly quizRepo: Repository<Quiz>,
@@ -26,11 +30,16 @@ export class QuizzesService {
 
   // Get quizzes untuk video tertentu
   async getQuizzesForVideo(videoId: number): Promise<Quiz[]> {
-    return this.quizRepo.find({
-      where: { videoId },
+    console.log(`🔍 Fetching quizzes for video ${videoId}`);
+    
+    const quizzes = await this.quizRepo.find({
+      where: { videoId: videoId },
       relations: ['options'],
       order: { timestamp_seconds: 'ASC' },
     });
+
+    console.log(`✅ Found ${quizzes.length} quizzes for video ${videoId}`);
+    return quizzes;
   }
 
   // Get quiz by ID
@@ -41,115 +50,142 @@ export class QuizzesService {
     });
 
     if (!quiz) {
-      throw new NotFoundException('Quiz tidak ditemukan');
+      throw new NotFoundException(`Quiz dengan ID ${id} tidak ditemukan`);
     }
 
     return quiz;
   }
 
-  // Create quiz (untuk creator)
-  async createQuiz(dto: CreateQuizDto, creatorId: number): Promise<Quiz> {
-    // Validate minimum 2 options
-    if (dto.options.length < 2) {
-      throw new BadRequestException('Quiz harus memiliki minimal 2 pilihan jawaban');
+  // Submit quiz answer - CRITICAL METHOD
+  async submitAnswer(dto: SubmitQuizDto, userId: number): Promise<any> {
+    console.log('🎯 Processing quiz submission...');
+    
+    // Validasi input
+    if (!dto.quizId || !dto.profileId || !dto.selectedOptionId) {
+      throw new BadRequestException('quizId, profileId, dan selectedOptionId harus diisi');
     }
 
-    // Validate at least one correct answer
-    const hasCorrectAnswer = dto.options.some((o) => o.is_correct);
-    if (!hasCorrectAnswer) {
-      throw new BadRequestException('Quiz harus memiliki minimal 1 jawaban benar');
+    // Check profile ownership
+    console.log(`🔐 Verifying profile ${dto.profileId} belongs to user ${userId}`);
+    const profile = await this.profilesService.findOneByUser(dto.profileId, userId);
+    if (!profile) {
+      throw new ForbiddenException('Profile tidak ditemukan atau bukan milik Anda');
     }
 
-    // Create quiz
-    const quiz = this.quizRepo.create({
-      videoId: dto.videoId,
-      timestamp_seconds: dto.timestamp_seconds,
-      question_text: dto.question_text,
-    });
-
-    const savedQuiz = await this.quizRepo.save(quiz);
-
-    // Create options
-    const options = dto.options.map((opt) =>
-      this.optionRepo.create({
-        quizId: savedQuiz.id,
-        option_text: opt.option_text,
-        is_correct: opt.is_correct,
-      }),
-    );
-
-    await this.optionRepo.save(options);
-
-    // Return quiz with options
-    return this.findById(savedQuiz.id);
-  }
-
-  // Delete quiz
-  async deleteQuiz(quizId: number): Promise<{ message: string }> {
-    const quiz = await this.findById(quizId);
-    
-    // Delete options first
-    await this.optionRepo.delete({ quizId: quiz.id });
-    
-    // Delete quiz
-    await this.quizRepo.remove(quiz);
-    
-    return { message: 'Quiz berhasil dihapus' };
-  }
-
-  // Submit jawaban quiz
-  async submitAnswer(dto: SubmitQuizDto, userId: number): Promise<QuizAttempt> {
-    // Verify profile ownership
-    await this.profilesService.findOneByUser(dto.profileId, userId);
-
-    // Get quiz with options
+    // Get quiz
+    console.log(`📚 Fetching quiz ${dto.quizId}`);
     const quiz = await this.findById(dto.quizId);
+    if (!quiz) {
+      throw new NotFoundException('Quiz tidak ditemukan');
+    }
 
     // Check if already attempted
+    console.log(`⏰ Checking if already attempted...`);
     const existingAttempt = await this.attemptRepo.findOne({
-      where: { quiz_id: dto.quizId, profile_id: dto.profileId },
+      where: {
+        quiz_id: dto.quizId,
+        profile_id: dto.profileId,
+      },
     });
 
     if (existingAttempt) {
-      throw new BadRequestException('Quiz ini sudah pernah dijawab');
+      console.warn(`⚠️ Quiz sudah pernah dijawab oleh profile ${dto.profileId}`);
+      throw new ConflictException('Quiz sudah pernah dijawab');
     }
 
-    // Find selected option
-    const selectedOption = quiz.options.find((o) => o.id === dto.selectedOptionId);
+    // Get selected option
+    console.log(`🔍 Finding selected option ${dto.selectedOptionId}`);
+    const selectedOption = await this.optionRepo.findOne({
+      where: { id: dto.selectedOptionId },
+    });
+
     if (!selectedOption) {
-      throw new BadRequestException('Pilihan jawaban tidak valid');
+      throw new NotFoundException('Opsi jawaban tidak ditemukan');
     }
 
-    // Check if correct
-    const isCorrect = selectedOption.is_correct;
+    // Check if option belongs to this quiz
+    if (selectedOption.quizId !== dto.quizId) {
+      throw new BadRequestException('Opsi tidak sesuai dengan quiz');
+    }
 
-    // Create attempt
+    // Determine if correct
+    const isCorrect = selectedOption.is_correct;
+    const pointsEarned = isCorrect ? 10 : 0;
+
+    console.log(`📊 Answer result: ${isCorrect ? '✅ CORRECT' : '❌ INCORRECT'}`);
+
+    // Create attempt record
+    console.log(`💾 Creating attempt record...`);
     const attempt = this.attemptRepo.create({
       quiz_id: dto.quizId,
       profile_id: dto.profileId,
       is_correct: isCorrect,
+      attempted_at: new Date(),
     });
 
-    return this.attemptRepo.save(attempt);
+    const savedAttempt = await this.attemptRepo.save(attempt);
+    console.log(`✅ Attempt saved with ID: ${savedAttempt.id}`);
+
+    // Return result
+    const result = {
+      id: savedAttempt.id,
+      quiz_id: savedAttempt.quiz_id,
+      profile_id: savedAttempt.profile_id,
+      is_correct: isCorrect,
+      points_earned: pointsEarned,
+      attempted_at: savedAttempt.attempted_at,
+    };
+
+    console.log(`🎉 Submission complete:`, result);
+    return result;
   }
 
   // Get attempts by profile
   async getAttemptsByProfile(profileId: number, userId: number): Promise<QuizAttempt[]> {
+    console.log(`📊 Fetching attempts for profile ${profileId}`);
+    
     // Verify profile ownership
-    await this.profilesService.findOneByUser(profileId, userId);
+    const profile = await this.profilesService.findOneByUser(profileId, userId);
+    if (!profile) {
+      throw new ForbiddenException('Profile tidak ditemukan atau bukan milik Anda');
+    }
 
-    return this.attemptRepo.find({
+    const attempts = await this.attemptRepo.find({
       where: { profile_id: profileId },
       order: { attempted_at: 'DESC' },
     });
+
+    console.log(`✅ Found ${attempts.length} attempts`);
+    return attempts;
   }
 
-  // Check if quiz already attempted
-  async checkAttempt(quizId: number, profileId: number, userId: number): Promise<QuizAttempt | null> {
-    await this.profilesService.findOneByUser(profileId, userId);
+  // Check if already attempted
+  async checkAttempt(
+    quizId: number,
+    profileId: number,
+    userId: number,
+  ): Promise<QuizAttempt | null> {
+    console.log(`🔍 Checking attempt for quiz ${quizId}, profile ${profileId}`);
+    
+    // Verify profile ownership
+    const profile = await this.profilesService.findOneByUser(profileId, userId);
+    if (!profile) {
+      throw new ForbiddenException('Profile tidak ditemukan atau bukan milik Anda');
+    }
 
-    return this.attemptRepo.findOne({
-      where: { quiz_id: quizId, profile_id: profileId },
+    const attempt = await this.attemptRepo.findOne({
+      where: {
+        quiz_id: quizId,
+        profile_id: profileId,
+      },
     });
+
+    if (attempt) {
+      console.log(`✅ Found previous attempt`);
+    } else {
+      console.log(`ℹ️ No previous attempt found`);
+    }
+
+    return attempt || null;
   }
 }

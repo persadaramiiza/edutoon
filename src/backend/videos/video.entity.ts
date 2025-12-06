@@ -2,89 +2,52 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  DeleteDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
-export enum VideoPlatform {
-  NATIVE = 'native',
-  YOUTUBE = 'youtube',
-  VIMEO = 'vimeo',
-  OTHER = 'other',
-}
-
-export enum VideoStatus {
-  DRAFT = 'draft',
-  PUBLISHED = 'published',
-  ARCHIVED = 'archived',
-}
-
 @Entity('videos')
-@Index(['status', 'min_age']) // Composite index for filtering
-@Index(['creator_id', 'created_at']) // Index for creator's videos
 export class Video {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column({ length: 200 })
+  @Column()
   title: string;
 
   @Column({ type: 'text', nullable: true })
-  description?: string;
+  description: string;
 
-  @Column({ length: 500 })
+  @Column()
   video_url: string;
 
-  @Column({ length: 100, nullable: true })
-  video_id?: string;
+  @Column({ nullable: true })
+  thumbnail_url: string; // ✅ ADD THIS
 
-  @Column({ length: 500, nullable: true })
-  thumbnail_url?: string;
+  @Column({ default: 'youtube' })
+  platform: 'youtube' | 'vimeo' | 'native';
 
-  @Column({
-    type: 'enum',
-    enum: VideoPlatform,
-    default: VideoPlatform.NATIVE,
-  })
-  platform: VideoPlatform;
+  @Column({ nullable: true })
+  category: string;
 
-  @Index()
-  @Column({
-    type: 'enum',
-    enum: VideoStatus,
-    default: VideoStatus.DRAFT,
-  })
-  status: VideoStatus;
-
-  @Column({ type: 'int', nullable: true })
-  duration_seconds?: number;
-
-  @Index()
-  @Column({ type: 'int', default: 0 })
+  @Column({ default: 0 })
   min_age: number;
 
-  @Column({ type: 'int', nullable: true })
-  max_age?: number;
-
-  @Index()
-  @Column({ length: 100, nullable: true })
-  category?: string;
+  @Column({ default: 18 })
+  max_age: number;
 
   @Column({ default: 0 })
   view_count: number;
 
-  @ManyToOne(() => User, { eager: true, nullable: true })
-  @JoinColumn({ name: 'creator_id' })
-  creator?: User;
+  @Column({ default: 'draft' })
+  status: 'draft' | 'published' | 'archived';
 
-  @Index()
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  creator: User;
+
   @Column({ nullable: true })
-  creator_id?: number;
+  creator_id: number;
 
   @CreateDateColumn()
   created_at: Date;
@@ -92,6 +55,6 @@ export class Video {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @DeleteDateColumn()
-  deleted_at?: Date;
+  @Column({ nullable: true })
+  published_at: Date;
 }
