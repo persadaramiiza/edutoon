@@ -19,6 +19,7 @@ export const mockVideo: Video = {
     full_name: 'Teacher Ali',
     email: 'teacher@edutoon.com',
   },
+  created_at: new Date().toISOString(),
 };
 
 // Mock Quizzes Data
