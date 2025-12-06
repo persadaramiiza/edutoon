@@ -19,6 +19,7 @@ export default function CreatorDashboard() {
     title: '',
     description: '',
     video_url: '',
+    platform: 'youtube',
     category: '',
     min_age: 0,
     max_age: 18,
@@ -88,11 +89,11 @@ export default function CreatorDashboard() {
         await videosService.create(formData);
       }
       setShowAddVideo(false);
-      setEditingVideo(null);
       setFormData({
         title: '',
         description: '',
         video_url: '',
+        platform: 'youtube',
         category: '',
         min_age: 0,
         max_age: 18,
@@ -112,6 +113,7 @@ export default function CreatorDashboard() {
       title: video.title,
       description: video.description || '',
       video_url: video.video_url,
+      platform: video.platform || 'youtube',
       category: video.category || '',
       min_age: video.min_age,
       max_age: video.max_age,
@@ -287,6 +289,7 @@ export default function CreatorDashboard() {
                 title: '',
                 description: '',
                 video_url: '',
+                platform: 'youtube',
                 category: '',
                 min_age: 0,
                 max_age: 18,
@@ -314,6 +317,7 @@ export default function CreatorDashboard() {
                   title: '',
                   description: '',
                   video_url: '',
+                  platform: 'youtube',
                   category: '',
                   min_age: 0,
                   max_age: 18,

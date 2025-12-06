@@ -11,5 +11,6 @@ import { ProfilesModule } from '../profiles/profiles.module';
   imports: [TypeOrmModule.forFeature([Quiz, QuizOption, QuizAttempt]), ProfilesModule],
   providers: [QuizzesService],
   controllers: [QuizzesController],
+  exports: [QuizzesService],
 })
 export class QuizzesModule {}
