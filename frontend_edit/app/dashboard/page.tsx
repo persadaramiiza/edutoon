@@ -371,7 +371,7 @@ export default function DashboardPage() {
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => router.push(`/report?name=${selectedProfile.name}`)}
+              onClick={() => router.push(`/report?name=${selectedProfile.name}&id=${selectedProfile.id}`)}
               className="text-[#8B7355] hover:text-[#FF7A00] hover:bg-[#FFF5E5] mr-1 hidden sm:flex items-center gap-2"
               title="Lihat Laporan Belajar"
             >
