@@ -166,7 +166,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="bg-[#FFF5E5] border border-[#FFE0B2] rounded-full px-4 py-2 flex items-center gap-2">
+              <div 
+                onClick={() => router.push('/profile')}
+                className="bg-[#FFF5E5] border border-[#FFE0B2] rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[#FFE0B2] transition-colors"
+              >
                 <div className="w-8 h-8 rounded-full bg-[#FF7A00] flex items-center justify-center text-white text-sm font-bold shadow-sm">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </div>
@@ -365,6 +368,17 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push(`/report?name=${selectedProfile.name}`)}
+              className="text-[#8B7355] hover:text-[#FF7A00] hover:bg-[#FFF5E5] mr-1 hidden sm:flex items-center gap-2"
+              title="Lihat Laporan Belajar"
+            >
+              <span className="text-xl">📊</span>
+              <span className="font-bold text-sm">Laporan</span>
+            </Button>
+
             <div className="flex items-center gap-2 bg-[#FFF5E5] border border-[#FFE0B2] px-4 py-2 rounded-full shadow-sm">
               <div className="w-6 h-6 bg-[#FF7A00] rounded-full flex items-center justify-center text-sm font-bold text-white">
                 {selectedProfile.name.charAt(0).toUpperCase()}
