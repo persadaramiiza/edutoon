@@ -151,7 +151,10 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <div className="bg-[#FFF5E5] border border-[#FFE0B2] rounded-full px-4 py-2 flex items-center gap-2">
+              <div 
+                onClick={() => router.push('/profile')}
+                className="bg-[#FFF5E5] border border-[#FFE0B2] rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-[#FFE0B2] transition-colors"
+              >
                 <div className="w-8 h-8 rounded-full bg-[#FF7A00] flex items-center justify-center text-white text-sm font-bold shadow-sm">
                   {(user.full_name || user.email).charAt(0).toUpperCase()}
                 </div>
