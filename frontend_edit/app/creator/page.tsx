@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { videosService, Video, CreateVideoData } from '@/lib/videos';
+import { userProfileService } from '@/lib/user-profile';
 import { Button, Card, Input } from '@/components/ui';
 import { LoadingPage } from '@/components/ui/Loading';
+import { X } from 'lucide-react';
 
 export default function CreatorDashboard() {
   const router = useRouter();
@@ -23,6 +25,18 @@ export default function CreatorDashboard() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: '',
+    email: '',
+    current_password: '',
+    new_password: '',
+    confirm_password: '',
+  });
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
+  const [isProfileSubmitting, setIsProfileSubmitting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -37,6 +51,21 @@ export default function CreatorDashboard() {
       loadVideos();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (showProfileModal && user) {
+      setProfileForm({
+        full_name: user.full_name || '',
+        email: user.email || '',
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+      setIsEditMode(false);
+      setProfileError('');
+      setProfileSuccess('');
+    }
+  }, [showProfileModal, user]);
 
   const loadVideos = async () => {
     try {
@@ -119,6 +148,59 @@ export default function CreatorDashboard() {
     }
   };
 
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError('');
+    setProfileSuccess('');
+    setIsProfileSubmitting(true);
+
+    try {
+      // Validate password change if provided
+      if (profileForm.new_password || profileForm.confirm_password) {
+        if (!profileForm.current_password) {
+          setProfileError('Password saat ini harus diisi untuk mengganti password');
+          setIsProfileSubmitting(false);
+          return;
+        }
+        if (profileForm.new_password !== profileForm.confirm_password) {
+          setProfileError('Password baru tidak cocok');
+          setIsProfileSubmitting(false);
+          return;
+        }
+        if (profileForm.new_password.length < 6) {
+          setProfileError('Password minimal 6 karakter');
+          setIsProfileSubmitting(false);
+          return;
+        }
+      }
+
+      const updateData: any = {
+        full_name: profileForm.full_name,
+        email: profileForm.email,
+      };
+
+      if (profileForm.new_password) {
+        updateData.current_password = profileForm.current_password;
+        updateData.new_password = profileForm.new_password;
+      }
+
+      await userProfileService.updateProfile(updateData);
+      setProfileSuccess('Profil berhasil diperbarui');
+      setIsEditMode(false);
+      setProfileForm({
+        full_name: profileForm.full_name,
+        email: profileForm.email,
+        current_password: '',
+        new_password: '',
+        confirm_password: '',
+      });
+    } catch (err: any) {
+      setProfileError(err.response?.data?.message || 'Gagal memperbarui profil');
+    } finally {
+      setIsProfileSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     // return <LoadingPage text="Memuat dashboard creator..." />;
   }
@@ -150,12 +232,17 @@ export default function CreatorDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-[#FFF5E5] border-2 border-[#FFE0B2] text-[#8B7355] px-4 py-2 rounded-full shadow-sm">
+            <div 
+              onClick={() => setShowProfileModal(true)}
+              className="hidden sm:flex items-center gap-2 bg-[#FFF5E5] border-2 border-[#FFE0B2] text-[#8B7355] px-4 py-2 rounded-full shadow-sm cursor-pointer hover:border-[#FF7A00] transition-all hover:shadow-md hover:-translate-y-0.5"
+            >
               <div className="w-8 h-8 bg-[#FF7A00] text-white rounded-full flex items-center justify-center text-sm font-black shadow-md">
                 {(user?.full_name || user?.email || '?').charAt(0).toUpperCase()}
               </div>
               <span className="font-bold text-sm">{user?.full_name || user?.email}</span>
-              <span className="bg-[#D94D2B] text-white text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-1">Creator Mode</span>
+              <span className="bg-[#D94D2B] text-white text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-1">
+                Creator Mode
+              </span>
             </div>
             <Button variant="ghost" size="sm" onClick={logout} className="text-[#8B7355] hover:text-[#D94D2B] hover:bg-[#FFF5E5]">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -543,6 +630,129 @@ export default function CreatorDashboard() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Creator Profile Settings Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-[2rem] shadow-2xl border-b-8 border-[#FFE0B2] p-8 max-w-md w-full animate-scale-in relative max-h-96 overflow-y-auto">
+            <button 
+              onClick={() => setShowProfileModal(false)}
+              className="absolute top-4 right-4 text-[#8B7355] hover:text-[#FF7A00] transition-colors sticky"
+            >
+              <X size={24} strokeWidth={3} />
+            </button>
+            
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-[#FF7A00] text-white rounded-full flex items-center justify-center text-2xl font-black shadow-md mx-auto mb-3">
+                {(user?.full_name || user?.email || '?').charAt(0).toUpperCase()}
+              </div>
+              <h3 className="text-2xl font-black text-[#4A4A4A] mb-1">Pengaturan Profil</h3>
+              <p className="text-sm text-[#8B7355]">Creator Mode</p>
+            </div>
+
+            {profileError && (
+              <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 text-red-600 rounded-xl font-bold text-sm">
+                {profileError}
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div className="mb-4 p-3 bg-green-50 border-2 border-green-200 text-green-600 rounded-xl font-bold text-sm">
+                {profileSuccess}
+              </div>
+            )}
+
+            {!isEditMode ? (
+              <div className="space-y-4">
+                <div className="bg-[#FFF5E5] border-2 border-[#FFE0B2] rounded-2xl p-4">
+                  <p className="text-xs text-[#8B7355] font-bold uppercase mb-1">Nama</p>
+                  <p className="text-lg font-black text-[#4A4A4A]">{profileForm.full_name}</p>
+                </div>
+                <div className="bg-[#FFF5E5] border-2 border-[#FFE0B2] rounded-2xl p-4">
+                  <p className="text-xs text-[#8B7355] font-bold uppercase mb-1">Email</p>
+                  <p className="text-lg font-black text-[#4A4A4A]">{profileForm.email}</p>
+                </div>
+                <Button
+                  onClick={() => setIsEditMode(true)}
+                  className="w-full bg-[#FF7A00] text-white hover:bg-[#E66E00] font-black rounded-full"
+                >
+                  Edit Profil
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-black text-[#4A4A4A] mb-2">Nama Lengkap</label>
+                  <Input
+                    type="text"
+                    value={profileForm.full_name}
+                    onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                    placeholder="Masukkan nama"
+                    className="rounded-xl border-2 border-[#FFE0B2] focus:border-[#FF7A00] font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-[#4A4A4A] mb-2">Email</label>
+                  <Input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                    placeholder="Masukkan email"
+                    className="rounded-xl border-2 border-[#FFE0B2] focus:border-[#FF7A00] font-bold"
+                  />
+                </div>
+
+                <div className="pt-2 border-t-2 border-[#FFE0B2]">
+                  <p className="text-xs font-black text-[#8B7355] uppercase mb-3">Ganti Password (Opsional)</p>
+                  
+                  <div className="space-y-3">
+                    <Input
+                      type="password"
+                      value={profileForm.current_password}
+                      onChange={(e) => setProfileForm({ ...profileForm, current_password: e.target.value })}
+                      placeholder="Password saat ini"
+                      className="rounded-xl border-2 border-[#FFE0B2] focus:border-[#FF7A00] font-bold"
+                    />
+                    <Input
+                      type="password"
+                      value={profileForm.new_password}
+                      onChange={(e) => setProfileForm({ ...profileForm, new_password: e.target.value })}
+                      placeholder="Password baru"
+                      className="rounded-xl border-2 border-[#FFE0B2] focus:border-[#FF7A00] font-bold"
+                    />
+                    <Input
+                      type="password"
+                      value={profileForm.confirm_password}
+                      onChange={(e) => setProfileForm({ ...profileForm, confirm_password: e.target.value })}
+                      placeholder="Konfirmasi password baru"
+                      className="rounded-xl border-2 border-[#FFE0B2] focus:border-[#FF7A00] font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsEditMode(false)}
+                    className="flex-1 text-[#8B7355] font-black hover:bg-[#FFF5E5]"
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    isLoading={isProfileSubmitting}
+                    className="flex-1 bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black rounded-full"
+                  >
+                    Simpan
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

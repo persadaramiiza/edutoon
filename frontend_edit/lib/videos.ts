@@ -40,9 +40,13 @@ export type UpdateVideoData = Partial<CreateVideoData>;
 
 export const videosService = {
   async getAll(profileId?: number): Promise<Video[]> {
-    const params = profileId ? { profileId } : {};
-    const response = await api.get('/videos', { params });
-    return response.data;
+    const response = await api.get('/videos', {
+      params: {
+        ...(profileId && { profileId: String(profileId) }),
+      },
+    });
+    // Backend returns paginated result with { data, meta }
+    return response.data?.data || response.data || [];
   },
 
   async getById(id: number): Promise<Video> {

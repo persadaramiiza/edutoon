@@ -1,35 +1,74 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button, Card } from '@/components/ui';
 import { ArrowLeft, Play, X } from 'lucide-react';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { reportService, ReportData } from '@/lib/report';
 
 function ReportContent() {
   const router = useRouter();
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const childName = searchParams.get('name') || 'Anak';
+  const profileId = searchParams.get('id') || '';
+  
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [error, setError] = useState('');
 
-  // TODO: Fetch real stats from API
-  const stats = {
-    name: childName,
-    age: 0,
-    total_watched: 0,
-    avg_score: 0,
-    last_activity: '-',
-    history: [] as any[]
-  };
+  useEffect(() => {
+    if (!user || !profileId) {
+      router.push('/dashboard');
+      return;
+    }
+
+    const loadReport = async () => {
+      try {
+        setIsLoading(true);
+        const data = await reportService.getProfileReport(parseInt(profileId));
+        setReportData(data);
+      } catch (err: any) {
+        console.error('Error loading report:', err);
+        setError('Gagal memuat laporan');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReport();
+  }, [profileId, user, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FFF9F0] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">⏳</div>
+          <p className="text-[#8B7355] font-bold">Memuat laporan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!reportData) {
+    return (
+      <div className="min-h-screen bg-[#FFF9F0] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-[#D94D2B] font-bold mb-4">Error: {error}</p>
+          <Button onClick={() => router.back()}>Kembali</Button>
+        </div>
+      </div>
+    );
+  }
 
   const handleItemClick = (item: any) => {
-    if (item.type === 'video') {
-      setSelectedItem(item);
-    }
+    setSelectedItem(item);
   };
 
   const handleContinueWatching = () => {
     if (selectedItem) {
-      // Mock navigation to watch page
       router.push(`/watch/${selectedItem.id}`);
     }
   };
@@ -46,7 +85,7 @@ function ReportContent() {
           >
             <ArrowLeft size={24} strokeWidth={3} />
           </Button>
-          <h1 className="text-3xl font-black text-[#4A4A4A]">Laporan Belajar {stats.name} 📊</h1>
+          <h1 className="text-3xl font-black text-[#4A4A4A]">Laporan Belajar {childName} 📊</h1>
         </div>
 
         <Card className="p-6 sm:p-8 border-b-8 border-[#FFE0B2] shadow-xl bg-white animate-scale-in">
@@ -54,20 +93,17 @@ function ReportContent() {
             {/* Top Stats */}
             <div className="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b-2 border-[#FFF5E5]">
               <div className="w-24 h-24 bg-[#FFF5E5] rounded-full flex items-center justify-center text-4xl font-bold text-[#FF7A00] border-4 border-[#FFE0B2] shadow-inner">
-                {stats.name.charAt(0)}
+                {childName.charAt(0).toUpperCase()}
               </div>
               <div className="text-center sm:text-left flex-1">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-                  <h2 className="text-2xl font-black text-[#4A4A4A]">{stats.name}</h2>
-                  <span className="bg-[#FF7A00] text-white px-3 py-1 rounded-full text-sm font-bold shadow-sm w-fit mx-auto sm:mx-0">
-                    {stats.age} Tahun
-                  </span>
+                  <h2 className="text-2xl font-black text-[#4A4A4A]">{childName}</h2>
                 </div>
                 <p className="text-[#8B7355] font-bold">Terus semangat belajar ya! 🌟</p>
               </div>
               <div className="bg-[#E8F5E9] text-[#2E7D32] px-6 py-3 rounded-2xl text-center border-2 border-[#C8E6C9]">
                 <p className="text-sm font-bold uppercase tracking-wider opacity-80">Skor Rata-rata</p>
-                <p className="text-4xl font-black">{stats.avg_score}</p>
+                <p className="text-4xl font-black">{reportData.average_score}%</p>
               </div>
             </div>
 
@@ -80,59 +116,100 @@ function ReportContent() {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#FFF9F0] p-4 rounded-2xl border-2 border-[#FFE0B2]">
-                    <p className="text-3xl font-black text-[#FF7A00] mb-1">{stats.total_watched}</p>
+                    <p className="text-3xl font-black text-[#FF7A00] mb-1">{reportData.total_watched}</p>
                     <p className="text-sm text-[#8B7355] font-bold leading-tight">Video Ditonton</p>
                   </div>
                   <div className="bg-[#E3F2FD] p-4 rounded-2xl border-2 border-[#BBDEFB]">
-                    <p className="text-3xl font-black text-[#1976D2] mb-1">{stats.history.filter(h => h.type === 'quiz').length}</p>
+                    <p className="text-3xl font-black text-[#1976D2] mb-1">{reportData.quiz_attempts}</p>
                     <p className="text-sm text-[#1565C0] font-bold leading-tight">Kuis Dikerjakan</p>
+                  </div>
+                  <div className="bg-[#F3E5F5] p-4 rounded-2xl border-2 border-[#E1BEE7]">
+                    <p className="text-3xl font-black text-[#7B1FA2] mb-1">{reportData.completed_videos}</p>
+                    <p className="text-sm text-[#6A1B9A] font-bold leading-tight">Video Selesai</p>
+                  </div>
+                  <div className="bg-[#E0F2F1] p-4 rounded-2xl border-2 border-[#B2DFDB]">
+                    <p className="text-3xl font-black text-[#00796B] mb-1">{reportData.correct_answers}</p>
+                    <p className="text-sm text-[#004D40] font-bold leading-tight">Jawaban Benar</p>
                   </div>
                 </div>
                 <div className="bg-[#FFF9F0] p-4 rounded-2xl border-2 border-[#FFE0B2]">
                   <p className="text-sm text-[#8B7355] font-bold mb-1">Aktivitas Terakhir</p>
-                  <p className="text-lg font-black text-[#4A4A4A]">{stats.last_activity}</p>
+                  <p className="text-lg font-black text-[#4A4A4A]">{reportData.last_activity}</p>
                 </div>
               </div>
 
-              {/* History List */}
+              {/* Continue Watching List */}
               <div>
                 <h3 className="font-black text-lg text-[#4A4A4A] mb-4 flex items-center gap-2">
-                  <span>🕒</span> Riwayat Terbaru
+                  <span>🎬</span> Lanjutkan Menonton
                 </h3>
                 <div className="space-y-3">
-                  {stats.history.map((item, idx) => (
+                  {reportData.continue_watching.length > 0 ? (
+                    reportData.continue_watching.slice(0, 4).map((item, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => handleItemClick(item)}
+                        className="flex items-center justify-between p-3 bg-white border-2 border-[#F5F5F5] rounded-xl transition-all group hover:border-[#FF7A00] cursor-pointer hover:shadow-md hover:-translate-y-0.5"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-[#FFF3E0] text-[#FF9800]">
+                            📺
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-[#4A4A4A] text-sm group-hover:text-[#FF7A00] transition-colors truncate">{item.title || 'Video'}</p>
+                            <p className="text-xs text-[#8B7355]">{Math.round(item.last_position_seconds / 60)} menit ditonton</p>
+                          </div>
+                        </div>
+                        <span className="opacity-0 group-hover:opacity-100 text-[#FF7A00] text-xs font-bold flex items-center gap-1 transition-opacity flex-shrink-0">
+                          <Play size={12} fill="currentColor" />
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 bg-[#FFF5E5] rounded-xl border-2 border-[#FFE0B2] text-center">
+                      <p className="text-[#8B7355] font-bold">Belum ada video yang ditonton</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Quiz History Section */}
+            {reportData.quiz_history.length > 0 && (
+              <div className="border-t-2 border-[#FFF5E5] pt-6">
+                <h3 className="font-black text-lg text-[#4A4A4A] mb-4 flex items-center gap-2">
+                  <span>📝</span> Riwayat Kuis Terbaru
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {reportData.quiz_history.slice(0, 6).map((quiz, idx) => (
                     <div 
-                      key={idx} 
-                      onClick={() => handleItemClick(item)}
-                      className={`flex items-center justify-between p-3 bg-white border-2 border-[#F5F5F5] rounded-xl transition-all group ${
-                        item.type === 'video' 
-                          ? 'hover:border-[#FF7A00] cursor-pointer hover:shadow-md hover:-translate-y-0.5' 
-                          : 'hover:border-[#BBDEFB]'
+                      key={idx}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        quiz.is_correct 
+                          ? 'bg-[#E8F5E9] border-[#C8E6C9]' 
+                          : 'bg-[#FFEBEE] border-[#FFCDD2]'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${item.type === 'video' ? 'bg-[#FFF3E0] text-[#FF9800]' : 'bg-[#E3F2FD] text-[#2196F3]'}`}>
-                          {item.type === 'video' ? '📺' : '📝'}
-                        </div>
-                        <div>
-                          <p className="font-bold text-[#4A4A4A] text-sm group-hover:text-[#FF7A00] transition-colors">{item.title}</p>
-                          <p className="text-xs text-[#8B7355]">{item.date}</p>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-black">
+                          {quiz.is_correct ? '✅' : '❌'}
+                        </span>
+                        <span className={`text-xs font-bold ${
+                          quiz.is_correct ? 'text-[#2E7D32]' : 'text-[#C62828]'
+                        }`}>
+                          {new Date(quiz.attempted_at).toLocaleDateString('id-ID', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
                       </div>
-                      {item.score ? (
-                        <span className="font-black text-[#4CAF50] bg-[#E8F5E9] px-2 py-1 rounded-lg text-xs">
-                          {item.score} Poin
-                        </span>
-                      ) : (
-                        <span className="opacity-0 group-hover:opacity-100 text-[#FF7A00] text-xs font-bold flex items-center gap-1 transition-opacity">
-                          <Play size={12} fill="currentColor" /> Tonton Lagi
-                        </span>
-                      )}
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </Card>
 
@@ -154,7 +231,7 @@ function ReportContent() {
                 <h3 className="text-2xl font-black text-[#4A4A4A] mb-2">Lanjut Menonton?</h3>
                 <p className="text-[#8B7355] font-bold mb-6">
                   Ingin menonton kembali video <br/>
-                  <span className="text-[#FF7A00]">"{selectedItem.title}"</span>?
+                  <span className="text-[#FF7A00]">"{selectedItem.title || 'ini'}"</span>?
                 </p>
                 
                 <div className="flex gap-3">
