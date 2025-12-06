@@ -69,14 +69,17 @@ export default function ManageQuizPage() {
   const handleOptionChange = (index: number, field: 'option_text' | 'is_correct', value: string | boolean) => {
     setOptions(prev => {
       const newOptions = [...prev];
+      
       if (field === 'is_correct') {
-        // Only one can be correct
+        // ✅ FIX: Set all to false first, then set selected to true
         newOptions.forEach((opt, i) => {
-          opt.is_correct = i === index;
+          newOptions[i] = { ...opt, is_correct: i === index };
         });
       } else {
+        // Update text field
         newOptions[index] = { ...newOptions[index], option_text: value as string };
       }
+      
       return newOptions;
     });
   };
@@ -295,72 +298,71 @@ export default function ManageQuizPage() {
       {showAddQuiz && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-[#FFF9F0] rounded-[2rem] border-8 border-[#FFE0B2] shadow-2xl max-w-lg w-full p-8 max-h-[90vh] overflow-y-auto relative">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-black text-[#4A4A4A]">Tambah Quiz Baru</h3>
-                <button 
-                    onClick={() => {
-                    setShowAddQuiz(false);
-                    setError('');
-                    }}
-                    className="text-[#8B7355] hover:text-[#D94D2B] transition-colors bg-[#FFF5E5] p-2 rounded-full hover:bg-[#FFE0B2]"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-black text-[#4A4A4A]">🎯 Tambah Quiz Baru</h3>
+                <p className="text-[#8B7355] text-sm font-bold mt-1">Buat pertanyaan interaktif untuk video</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddQuiz(false);
+                  setError('');
+                }}
+                className="text-[#8B7355] hover:text-[#D94D2B] transition p-2 hover:bg-[#FFF5E5] rounded-full"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             {error && (
-              <div className="bg-[#FFEBEE] border-l-8 border-[#D94D2B] text-[#C62828] px-6 py-4 rounded-r-xl mb-6 animate-slide-down flex items-center gap-3 font-bold shadow-sm">
-                <svg className="w-6 h-6 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="text-sm">{error}</span>
+              <div className="bg-[#FFEBEE] border-2 border-[#EF5350] text-[#C62828] px-4 py-3 rounded-xl mb-6 font-bold">
+                ⚠️ {error}
               </div>
             )}
 
             <form onSubmit={handleAddQuiz} className="space-y-6">
               {/* Timestamp */}
-              <div className="bg-[#FFF5E5] p-4 rounded-2xl border-2 border-[#FFE0B2]">
-                <label className="block text-sm font-black text-[#4A4A4A] mb-2">
-                  Waktu Muncul (timestamp)
+              <div>
+                <label className="block text-sm font-black text-[#4A4A4A] mb-3 ml-1">
+                  ⏱ Waktu Muncul (timestamp) *
                 </label>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <input
-                        type="number"
-                        min="0"
-                        value={timestampMinutes}
-                        onChange={(e) => setTimestampMinutes(Number(e.target.value))}
-                        className="w-full px-4 py-2 border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] font-bold focus:border-[#FF7A00] focus:outline-none text-center"
-                    />
-                    <div className="text-center text-xs font-bold text-[#8B7355] mt-1">Menit</div>
-                  </div>
-                  <span className="text-[#4A4A4A] font-black text-xl">:</span>
-                  <div className="flex-1">
-                    <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={timestampSeconds}
-                        onChange={(e) => setTimestampSeconds(Number(e.target.value))}
-                        className="w-full px-4 py-2 border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] font-bold focus:border-[#FF7A00] focus:outline-none text-center"
-                    />
-                    <div className="text-center text-xs font-bold text-[#8B7355] mt-1">Detik</div>
-                  </div>
+                <div className="flex items-center gap-3 bg-white p-4 rounded-xl border-2 border-[#FFE0B2]">
+                  <input
+                    type="number"
+                    min="0"
+                    value={timestampMinutes}
+                    onChange={(e) => setTimestampMinutes(Number(e.target.value))}
+                    className="w-20 px-3 py-2 border-2 border-[#FFE0B2] rounded-lg text-[#4A4A4A] font-bold focus:outline-none focus:border-[#FF7A00]"
+                  />
+                  <span className="text-[#8B7355] font-bold">menit</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={timestampSeconds}
+                    onChange={(e) => setTimestampSeconds(Number(e.target.value))}
+                    className="w-20 px-3 py-2 border-2 border-[#FFE0B2] rounded-lg text-[#4A4A4A] font-bold focus:outline-none focus:border-[#FF7A00]"
+                  />
+                  <span className="text-[#8B7355] font-bold">detik</span>
                 </div>
+                <p className="text-xs font-bold text-[#8B7355] mt-2 ml-1">
+                  Quiz akan muncul di: {timestampMinutes}:{String(timestampSeconds).padStart(2, '0')}
+                </p>
               </div>
 
               {/* Question */}
               <div>
-                <label className="block text-sm font-black text-[#4A4A4A] mb-2 ml-1">
-                  Pertanyaan *
+                <label className="block text-sm font-black text-[#4A4A4A] mb-3 ml-1">
+                  ❓ Pertanyaan Quiz *
                 </label>
                 <textarea
                   value={questionText}
                   onChange={(e) => setQuestionText(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] font-bold placeholder-[#8B7355]/50 transition-all duration-300 focus:outline-none focus:border-[#FF7A00] hover:border-[#FFCC80]"
-                  rows={2}
+                  className="w-full px-4 py-3 border-2 border-[#FFE0B2] rounded-xl text-[#4A4A4A] font-bold focus:outline-none focus:border-[#FF7A00] transition-all resize-none"
+                  rows={3}
                   placeholder="Contoh: Apa ibukota Indonesia?"
                   required
                 />
@@ -369,26 +371,33 @@ export default function ManageQuizPage() {
               {/* Options */}
               <div>
                 <label className="block text-sm font-black text-[#4A4A4A] mb-3 ml-1">
-                  Pilihan Jawaban * (minimal 2)
+                  📝 Pilihan Jawaban * (minimal 2)
                 </label>
                 <div className="space-y-3">
                   {options.map((option, index) => (
                     <div key={index} className="flex items-center gap-3 group">
+                      {/* Radio button */}
                       <div className="relative">
                         <input
-                            type="radio"
-                            name="correctAnswer"
-                            checked={option.is_correct}
-                            onChange={() => handleOptionChange(index, 'is_correct', true)}
-                            className="peer sr-only"
+                          type="radio"
+                          name="correctAnswer"
+                          id={`option-${index}`}
+                          checked={option.is_correct}
+                          onChange={() => handleOptionChange(index, 'is_correct', true)}
+                          className="peer sr-only"
                         />
-                        <div className="w-8 h-8 rounded-full border-2 border-[#FFE0B2] bg-white peer-checked:bg-[#2E7D32] peer-checked:border-[#2E7D32] flex items-center justify-center cursor-pointer transition-all hover:border-[#FF7A00]">
-                            <span className="text-white font-bold opacity-0 peer-checked:opacity-100">✓</span>
-                        </div>
+                        <label
+                          htmlFor={`option-${index}`}
+                          className="block w-8 h-8 rounded-full border-2 border-[#FFE0B2] bg-white peer-checked:bg-[#2E7D32] peer-checked:border-[#2E7D32] cursor-pointer transition-all hover:border-[#FF7A00] flex items-center justify-center"
+                        >
+                          <span className="text-white font-bold opacity-0 peer-checked:opacity-100">✓</span>
+                        </label>
                       </div>
+                      
                       <span className="w-6 text-[#8B7355] font-black text-lg">
                         {String.fromCharCode(65 + index)}.
                       </span>
+                      
                       <input
                         type="text"
                         value={option.option_text}

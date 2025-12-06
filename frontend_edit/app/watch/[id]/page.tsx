@@ -9,6 +9,7 @@ import QuizPopup from '@/components/QuizPopup';
 import api from '@/lib/api';
 import { ArrowLeft, Eye, Star, CheckCircle2, AlertCircle, PlayCircle, Clock, Brain } from "lucide-react";
 import { Button } from "@/components/ui";
+import dynamic from 'next/dynamic';
 
 interface SubmitQuizDto {
   quizId: number;
@@ -20,6 +21,8 @@ interface YouTubePlayer {
   playVideo(): void;
   pauseVideo(): void;
   getCurrentTime(): number;
+  getDuration(): number;
+  seekTo(seconds: number): void;
   destroy(): void;
 }
 
@@ -30,7 +33,7 @@ declare global {
   }
 }
 
-export default function WatchPage() {
+function WatchPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -42,18 +45,51 @@ export default function WatchPage() {
   const [completedQuizIds, setCompletedQuizIds] = useState<Set<number>>(new Set());
   const [correctCount, setCorrectCount] = useState(0);
   const [loadingVideo, setLoadingVideo] = useState(true);
-  const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmittingQuiz, setIsSubmittingQuiz] = useState(false);
   const [videoProgress, setVideoProgress] = useState<VideoProgress | null>(null);
-  
+  const [playerReady, setPlayerReady] = useState(false);
+  const [isMounted, setIsMounted] = useState(false); // ✅ NEW
+
   const playerRef = useRef<YouTubePlayer | null>(null);
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const ytApiLoadedRef = useRef(false);
-  const progressSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const playerInitializedRef = useRef(false);
 
   const videoId = Number(params?.id);
-  const profileId = Number(searchParams?.get('profile')) || 0;
+  const profileId = user?.role === 'creator' || user?.role === 'admin' 
+    ? 0 
+    : Number(searchParams?.get('profile')) || 0;
+
+  // ✅ FIX: Set mounted state
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
+  // ==================== GET YOUTUBE VIDEO ID ====================
+  const getYouTubeVideoId = useCallback((url: string): string | null => {
+    if (!url) return null;
+
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+      /(?:youtube\.com\/watch\?.*&v=)([a-zA-Z0-9_-]{11})/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        console.log('✅ Extracted YouTube ID:', match[1]);
+        return match[1];
+      }
+    }
+
+    console.warn('⚠️ Could not extract YouTube ID from:', url);
+    return null;
+  }, []);
 
   // ==================== LOAD VIDEO ====================
   const loadVideo = useCallback(async () => {
@@ -69,26 +105,27 @@ export default function WatchPage() {
 
       console.log('📥 Loading video:', videoId);
       const data = await videosService.getById(videoId);
-      console.log('✅ Video loaded:', data.title);
+      console.log('✅ Video loaded:', data.title, 'Platform:', data.platform);
       setVideo(data);
 
-      // Increment view count
-      console.log('👁 Incrementing view count');
-      await videosService.incrementView(videoId);
+      videosService.incrementView(videoId).catch(err => {
+        console.warn('⚠️ Failed to increment view:', err);
+      });
 
-      // Load previous progress
       if (profileId > 0) {
-        console.log('📊 Loading video progress');
-        const progress = await videosService.getProgress(videoId, profileId);
-        if (progress) {
-          setVideoProgress(progress);
-          console.log(`⏱️ Previous progress: ${progress.timestamp_seconds}s`);
+        try {
+          const progress = await videosService.getProgress(videoId, profileId);
+          if (progress && progress.last_position_seconds > 0) {
+            setVideoProgress(progress);
+            console.log(`⏱️ Previous progress: ${progress.last_position_seconds}s`);
+          }
+        } catch (err) {
+          console.warn('⚠️ Failed to load progress:', err);
         }
       }
     } catch (err: any) {
       console.error('❌ Error loading video:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to load video';
-      setError(errorMsg);
+      setError(err.response?.data?.message || err.message || 'Failed to load video');
     } finally {
       setLoadingVideo(false);
     }
@@ -96,16 +133,10 @@ export default function WatchPage() {
 
   // ==================== LOAD QUIZZES ====================
   const loadQuizzes = useCallback(async () => {
+    if (!videoId) return;
+    
     try {
       setLoadingQuizzes(true);
-      
-      if (!videoId) {
-        console.warn('⚠️ Video ID is missing, skipping quiz load');
-        setQuizzes([]);
-        return;
-      }
-
-      console.log('📥 Loading quizzes for video:', videoId);
       const data = await quizzesService.getByVideoId(videoId);
       console.log('✅ Loaded', data.length, 'quizzes');
       setQuizzes(data);
@@ -117,232 +148,83 @@ export default function WatchPage() {
     }
   }, [videoId]);
 
+  // ==================== LOAD COMPLETED QUIZZES ====================
+  const loadCompletedQuizzes = useCallback(async () => {
+    if (!profileId || profileId === 0 || !videoId) {
+      console.log('ℹ️ Skip loading quiz attempts (creator or no profile)');
+      return;
+    }
+
+    try {
+      console.log('📥 Loading completed quizzes for profile:', profileId);
+      const attempts = await quizzesService.getAttempts(profileId);
+      
+      const videoAttempts = attempts.filter(attempt => {
+        const quiz = quizzes.find(q => q.id === attempt.quiz_id);
+        return quiz && quiz.video_id === videoId;
+      });
+
+      const completedIds = new Set(videoAttempts.map(a => a.quiz_id));
+      const correctAnswers = videoAttempts.filter(a => a.is_correct).length;
+
+      console.log('✅ Found', completedIds.size, 'completed quizzes,', correctAnswers, 'correct');
+      setCompletedQuizIds(completedIds);
+      setCorrectCount(correctAnswers);
+    } catch (err) {
+      console.error('❌ Error loading completed quizzes:', err);
+    }
+  }, [profileId, videoId, quizzes]);
+
   // ==================== SAVE PROGRESS ====================
   const saveProgress = useCallback(
     async (currentTime: number, isCompleted: boolean = false) => {
-      if (!profileId || !user || !videoId) return;
+      if (!user || !videoId) return;
 
       try {
-        console.log('💾 Saving progress:', { videoId, profileId, currentTime, isCompleted });
         await videosService.saveProgress(videoId, {
-          profileId,
+          profileId: profileId,
           timestampSeconds: Math.floor(currentTime),
           isCompleted,
         });
-        console.log('✅ Progress saved');
       } catch (error: any) {
-        console.warn('⚠️ Failed to save progress (non-critical):', error.message);
+        console.warn('⚠️ Failed to save progress:', error.message);
       }
     },
     [profileId, videoId, user]
   );
 
-  // ==================== SUBMIT QUIZ ANSWER ====================
-  const handleSubmitQuizAnswer = useCallback(
-    async (optionId: number) => {
-      console.log('🎯 handleSubmitQuizAnswer called with optionId:', optionId);
-
-      if (!currentQuiz) {
-        console.error('❌ No current quiz');
-        return;
-      }
-
-      if (isSubmittingQuiz) {
-        console.warn('⚠️ Already submitting');
-        return;
-      }
-
-      if (!profileId || !user) {
-        console.error('❌ Missing profile or user');
-        setError('Profile atau user tidak lengkap');
-        return;
-      }
-
-      setIsSubmittingQuiz(true);
-
-      try {
-        const dto: SubmitQuizDto = {
-          quizId: currentQuiz.id,
-          profileId,
-          selectedOptionId: optionId,
-        };
-
-        console.log('📤 Submitting quiz:', dto);
-        console.log('🌐 Calling POST /quiz/submit');
-        
-        const response = await api.post('/quiz/submit', dto);
-        const result = response.data;
-
-        console.log('✅ API Response:', result);
-        
-        // Handle both formats dari API
-        const isCorrect = result.is_correct === true || result.isCorrect === true;
-        
-        if (isCorrect) {
-          setCorrectCount((prev) => prev + 1);
-          console.log('🎉 Correct! Points:', result.points_earned || 10);
-        } else {
-          console.log('❌ Incorrect');
-        }
-        
-        handleQuizComplete(isCorrect);
-      } catch (error: any) {
-        console.error('❌ Error submitting quiz:', error);
-        
-        const errorMsg = error.response?.data?.message || error.message || 'Gagal submit jawaban';
-        console.error('Error details:', errorMsg);
-
-        // Check for specific errors
-        if (
-          errorMsg.includes('sudah pernah dijawab') || 
-          errorMsg.includes('already attempted') ||
-          errorMsg.includes('already answered')
-        ) {
-          console.warn('⚠️ Quiz already answered');
-          handleQuizComplete(false);
-          return;
-        }
-
-        if (errorMsg.includes('tidak ditemukan') || errorMsg.includes('not found')) {
-          setError('Quiz atau profile tidak ditemukan');
-          handleQuizComplete(false);
-          return;
-        }
-
-        setError(errorMsg);
-        setIsSubmittingQuiz(false);
-      }
-    },
-    [currentQuiz, profileId, user, isSubmittingQuiz]
-  );
-
-  // ==================== AUTH CHECK ====================
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('⚠️ Not authenticated, redirecting to login');
-      router.push('/login');
-    }
-  }, [authLoading, user, router]);
-
-  // ==================== LOAD VIDEO & QUIZZES ====================
-  useEffect(() => {
-    if (videoId && user) {
-      console.log('📥 Loading data for videoId:', videoId);
-      loadVideo();
-      loadQuizzes();
-    }
-  }, [videoId, user, loadVideo, loadQuizzes]);
-
-  // ==================== AUTO SAVE PROGRESS ====================
-  useEffect(() => {
-    if (!playerRef.current || !profileId) return;
-
-    progressSaveIntervalRef.current = setInterval(() => {
-      const currentTime = playerRef.current?.getCurrentTime?.();
-      if (currentTime) {
-        saveProgress(currentTime, false);
-      }
-    }, 30000); // Save every 30 seconds
-
-    return () => {
-      if (progressSaveIntervalRef.current) {
-        clearInterval(progressSaveIntervalRef.current);
-      }
-    };
-  }, [profileId, saveProgress]);
-
   // ==================== ON VIDEO END ====================
   const handleVideoEnd = useCallback(() => {
     console.log('✅ Video ended');
-    if (profileId > 0 && video) {
-      saveProgress(video.description?.length || 0, true);
-    }
-  }, [profileId, video, saveProgress]);
-
-  // ==================== GET YOUTUBE VIDEO ID ====================
-  const getYouTubeVideoId = useCallback((url: string): string | null => {
-    const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-  }, []);
-
-  // ==================== INITIALIZE YOUTUBE PLAYER ====================
-  useEffect(() => {
-    if (!video || video.platform !== 'youtube' || quizzes.length === 0) return;
-
-    const ytId = getYouTubeVideoId(video.video_url);
-    if (!ytId) return;
-
-    const initPlayer = () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
+    if (video && playerRef.current) {
+      try {
+        const duration = playerRef.current.getDuration();
+        saveProgress(duration, true);
+      } catch (err) {
+        console.warn('⚠️ Could not get video duration:', err);
       }
-
-      playerRef.current = new window.YT.Player('youtube-player', {
-        videoId: ytId,
-        playerVars: {
-          autoplay: 0,
-          rel: 0,
-          modestbranding: 1,
-          start: videoProgress?.timestamp_seconds || 0,
-        },
-        events: {
-          onReady: (event: any) => {
-            // Resume from previous progress
-            if (videoProgress?.timestamp_seconds > 0) {
-              event.target.seekTo(videoProgress.timestamp_seconds);
-              console.log(`⏱️ Resumed from ${videoProgress.timestamp_seconds}s`);
-            }
-          },
-          onStateChange: (event: any) => {
-            if (event.data === 1) {
-              // Playing
-              startQuizCheck();
-            } else if (event.data === 0) {
-              // Ended
-              handleVideoEnd();
-              stopQuizCheck();
-            } else {
-              // Paused or other
-              stopQuizCheck();
-            }
-          },
-        },
-      });
-    };
-
-    if (!ytApiLoadedRef.current && !window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-      
-      window.onYouTubeIframeAPIReady = () => {
-        ytApiLoadedRef.current = true;
-        initPlayer();
-      };
-    } else if (window.YT && window.YT.Player) {
-      initPlayer();
     }
-
-    return () => {
-      stopQuizCheck();
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, [video, quizzes, getYouTubeVideoId, videoProgress, handleVideoEnd]);
+  }, [video, saveProgress]);
 
   // ==================== QUIZ CHECK LOGIC ====================
-  const startQuizCheck = () => {
+  const startQuizCheck = useCallback(() => {
     if (checkIntervalRef.current) return;
+    if (quizzes.length === 0) {
+      console.log('ℹ️ No quizzes available');
+      return;
+    }
 
+    // ✅ Skip quiz for creator
+    if (user?.role === 'creator' || user?.role === 'admin') {
+      console.log('ℹ️ Creator mode: Quiz disabled');
+      return;
+    }
+
+    console.log('🎯 Starting quiz check');
     checkIntervalRef.current = setInterval(() => {
       if (!playerRef.current?.getCurrentTime) return;
 
       const currentTime = Math.floor(playerRef.current.getCurrentTime());
-
       const quizToShow = quizzes.find(
         (q) => q.timestamp_seconds === currentTime && !completedQuizIds.has(q.id)
       );
@@ -353,64 +235,255 @@ export default function WatchPage() {
         setCurrentQuiz(quizToShow);
         stopQuizCheck();
       }
-    }, 500);
-  };
+    }, 1000);
+  }, [quizzes, completedQuizIds, profileId, user?.role]);
 
-  const stopQuizCheck = () => {
+  const stopQuizCheck = useCallback(() => {
     if (checkIntervalRef.current) {
       clearInterval(checkIntervalRef.current);
       checkIntervalRef.current = null;
     }
-  };
+  }, []);
 
-  const handleQuizComplete = (isCorrect: boolean) => {
-    if (currentQuiz) {
-      setCompletedQuizIds((prev) => new Set([...prev, currentQuiz.id]));
+  // ==================== INITIALIZE YOUTUBE PLAYER ====================
+  useEffect(() => {
+    // ✅ FIX: Only run on client side
+    if (!isMounted || !video || video.platform !== 'youtube' || playerInitializedRef.current) {
+      return;
     }
-    setCurrentQuiz(null);
-    setIsSubmittingQuiz(false);
-    
-    setTimeout(() => {
-      playerRef.current?.playVideo();
-      startQuizCheck();
-    }, 1500);
+
+    const ytId = getYouTubeVideoId(video.video_url);
+    if (!ytId) {
+      console.error("❌ Invalid YouTube URL:", video.video_url);
+      setPlayerReady(true);
+      return;
+    }
+
+    console.log('🎬 Initializing YouTube player for:', ytId);
+
+    const initPlayer = () => {
+      let attempts = 0;
+      const maxAttempts = 20;
+      
+      const checkAndInit = () => {
+        const container = document.getElementById('youtube-player');
+        
+        if (!container) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            console.log(`⏳ Waiting for container... (attempt ${attempts}/${maxAttempts})`);
+            setTimeout(checkAndInit, 100);
+          } else {
+            console.error('❌ Container not found after max attempts');
+            setPlayerReady(true);
+          }
+          return;
+        }
+
+        console.log('✅ Container found, creating player');
+        playerInitializedRef.current = true;
+
+        if (playerRef.current) {
+          try {
+            playerRef.current.destroy();
+          } catch (err) {
+            console.warn('⚠️ Error destroying old player:', err);
+          }
+          playerRef.current = null;
+        }
+
+        try {
+          playerRef.current = new window.YT.Player('youtube-player', {
+            videoId: ytId,
+            width: '100%',
+            height: '100%',
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              rel: 0,
+              modestbranding: 1,
+              fs: 1,
+              playsinline: 1,
+              start: videoProgress?.last_position_seconds || 0,
+            },
+            events: {
+              onReady: (event: any) => {
+                console.log('✅ YouTube player ready');
+                setPlayerReady(true);
+                
+                if (videoProgress?.last_position_seconds && videoProgress.last_position_seconds > 0) {
+                  setTimeout(() => {
+                    event.target.seekTo(videoProgress.last_position_seconds);
+                    console.log(`⏱️ Resumed from ${videoProgress.last_position_seconds}s`);
+                  }, 500);
+                }
+              },
+              onStateChange: (event: any) => {
+                console.log('🎮 Player state:', event.data);
+                if (event.data === 1) {
+                  startQuizCheck();
+                } else if (event.data === 0) {
+                  handleVideoEnd();
+                  stopQuizCheck();
+                } else if (event.data === 2) {
+                  stopQuizCheck();
+                }
+              },
+              onError: (event: any) => {
+                console.error('❌ YouTube player error:', event.data);
+                setPlayerReady(true);
+              },
+            },
+          });
+        } catch (err) {
+          console.error('❌ Failed to create player:', err);
+          setPlayerReady(true);
+          playerInitializedRef.current = false;
+        }
+      };
+
+      setTimeout(checkAndInit, 300);
+    };
+
+    if (typeof window.YT === 'undefined' || typeof window.YT.Player === 'undefined') {
+      console.log('📦 Loading YouTube IFrame API');
+      
+      if (!ytApiLoadedRef.current) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        if (firstScriptTag && firstScriptTag.parentNode) {
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        } else {
+          document.head.appendChild(tag);
+        }
+        
+        ytApiLoadedRef.current = true;
+      }
+
+      window.onYouTubeIframeAPIReady = () => {
+        console.log('✅ YouTube API loaded');
+        initPlayer();
+      };
+    } else {
+      console.log('✅ YouTube API already available');
+      initPlayer();
+    }
+
+    return () => {
+      console.log('🧹 Cleanup');
+      stopQuizCheck();
+    };
+  }, [isMounted, video, videoProgress, getYouTubeVideoId, startQuizCheck, stopQuizCheck, handleVideoEnd]);
+
+  // ==================== SUBMIT QUIZ ====================
+  const handleQuizSubmit = async (selectedOptionId: number) => {
+    if (user?.role === 'creator' || user?.role === 'admin') {
+      alert('Creator tidak bisa mengerjakan quiz');
+      return;
+    }
+
+    if (!currentQuiz || profileId === 0) {
+      console.error('❌ Cannot submit: missing quiz or profile');
+      throw new Error('Data tidak lengkap');
+    }
+
+    console.log('📤 Submitting quiz:', {
+      quizId: currentQuiz.id,
+      profileId: profileId,
+      selectedOptionId: selectedOptionId,
+    });
+
+    try {
+      const response = await api.post('/quiz/submit', {
+        quizId: currentQuiz.id,
+        profileId: profileId,
+        selectedOptionId: selectedOptionId,
+      });
+      
+      console.log('✅ Quiz submitted successfully:', response.data);
+
+      if (response.data.already_answered) {
+        console.log('⚠️ Quiz was already answered');
+        alert('Quiz ini sudah pernah dijawab sebelumnya! 📝');
+        
+        setCompletedQuizIds(prev => new Set([...prev, currentQuiz.id]));
+        setCurrentQuiz(null);
+        
+        if (playerRef.current) {
+          setTimeout(() => {
+            playerRef.current?.playVideo();
+            startQuizCheck();
+          }, 300);
+        }
+        return;
+      }
+      
+      if (response.data.is_correct) {
+        setCorrectCount(prev => prev + 1);
+      }
+
+      setCompletedQuizIds(prev => new Set([...prev, currentQuiz.id]));
+      setCurrentQuiz(null);
+      
+      if (playerRef.current) {
+        setTimeout(() => {
+          playerRef.current?.playVideo();
+          startQuizCheck();
+        }, 300);
+      }
+    } catch (error: any) {
+      console.error('❌ Error submitting quiz:', error.response?.data || error.message);
+      throw error;
+    }
   };
 
   const handleQuizClose = () => {
-    if (currentQuiz) {
-      setCompletedQuizIds((prev) => new Set([...prev, currentQuiz.id]));
-    }
+    console.log('🔴 Quiz closed without submitting');
     setCurrentQuiz(null);
-    setIsSubmittingQuiz(false);
-    
-    playerRef.current?.playVideo();
-    startQuizCheck();
-  };
-
-  const triggerTestQuiz = () => {
-    const uncompletedQuiz = quizzes.find((q) => !completedQuizIds.has(q.id));
-    if (uncompletedQuiz) {
-      playerRef.current?.pauseVideo();
-      setCurrentQuiz(uncompletedQuiz);
+    if (playerRef.current) {
+      setTimeout(() => {
+        playerRef.current?.playVideo();
+        startQuizCheck();
+      }, 300);
     }
   };
 
-  const getVimeoEmbedUrl = (url: string): string | null => {
-    const regex = /vimeo\.com\/(\d+)/;
-    const match = url.match(regex);
-    if (match) {
-      return `https://player.vimeo.com/video/${match[1]}`;
+  // ==================== EFFECTS ====================
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('⚠️ Not authenticated');
+      router.push('/login');
     }
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
+    if (videoId && user && !authLoading) {
+      loadVideo();
+      loadQuizzes();
+    }
+  }, [videoId, user, authLoading, loadVideo, loadQuizzes]);
+
+  useEffect(() => {
+    if (quizzes.length > 0 && profileId > 0) {
+      loadCompletedQuizzes();
+    }
+  }, [quizzes, profileId, loadCompletedQuizzes]);
+
+  // ✅ FIX: Don't render until mounted
+  if (!isMounted) {
     return null;
-  };
+  }
 
-  // ==================== LOADING STATES ====================
+  // ==================== RENDER ====================
   if (authLoading || loadingVideo) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFF9F0]">
         <div className="text-center">
-          <div className="animate-bounce text-6xl mb-4">🎓</div>
-          <div className="animate-bounce text-2xl font-black text-[#FF7A00]" style={{ animationDelay: '0.1s' }}>
+          <div className="text-6xl mb-4 animate-bounce">🎬</div>
+          <div className="animate-bounce text-2xl font-black text-[#FF7A00]">
             Loading Adventure...
           </div>
         </div>
@@ -453,28 +526,18 @@ export default function WatchPage() {
   }
 
   const isYouTube = video.platform === 'youtube';
-  const vimeoUrl = video.platform === 'vimeo' ? getVimeoEmbedUrl(video.video_url) : null;
+  const youtubeId = isYouTube ? getYouTubeVideoId(video.video_url) : null;
+  const vimeoUrl = video.platform === 'vimeo' ? video.video_url.match(/vimeo\.com\/(\d+)/)?.[1] : null;
 
   return (
-    <div className="min-h-screen bg-[#FFF9F0] font-sans text-[#4A4A4A]">
-      {/* Quiz Popup */}
-      {currentQuiz && profileId > 0 && (
-        <QuizPopup
-          quiz={currentQuiz}
-          profileId={profileId}
-          onComplete={handleQuizComplete}
-          onClose={handleQuizClose}
-          onSubmitAnswer={handleSubmitQuizAnswer}
-          isLoading={isSubmittingQuiz}
-        />
-      )}
-
+    <div className="min-h-screen bg-[#FFF9F0] font-sans text-[#4A4A4A]" suppressHydrationWarning>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b-2 border-[#FFE0B2] shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="bg-white/90 backdrop-blur-md border-b-2 border-[#FFE0B2] shadow-sm sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
+              size="sm"
               onClick={() => router.back()}
               className="text-[#8B7355] hover:text-[#FF7A00] hover:bg-[#FFF5E5] rounded-full font-bold"
             >
@@ -486,7 +549,7 @@ export default function WatchPage() {
             </h1>
           </div>
           
-          {quizzes.length > 0 && (
+          {quizzes.length > 0 && user?.role === 'parent' && (
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[#FFF5E5] rounded-full border border-[#FFE0B2]">
                 <Brain className="h-4 w-4 text-[#FF7A00]" />
@@ -495,11 +558,17 @@ export default function WatchPage() {
                 </span>
               </div>
               {correctCount > 0 && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-[#FFD93D] text-[#4A4A4A] rounded-full border-2 border-[#FF7A00] shadow-sm">
+                <div className="bg-[#FF7A00] text-white px-4 py-2 rounded-full font-black text-sm shadow-lg flex items-center gap-1">
                   <Star className="h-4 w-4 fill-current" />
-                  <span className="font-black text-sm">{correctCount * 10} Poin</span>
+                  {correctCount * 10} Poin
                 </div>
               )}
+            </div>
+          )}
+
+          {(user?.role === 'creator' || user?.role === 'admin') && (
+            <div className="bg-[#D94D2B] text-white px-4 py-2 rounded-full font-black text-sm shadow-lg">
+              🎨 Creator Mode
             </div>
           )}
         </div>
@@ -508,20 +577,26 @@ export default function WatchPage() {
       {/* Video Player */}
       <main className="container mx-auto px-4 py-6 md:py-8 max-w-6xl">
         <div className="relative bg-black rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-[6px] md:border-[8px] border-[#FFE0B2]">
-          {isYouTube && quizzes.length > 0 ? (
-            <div className="aspect-video">
-              <div id="youtube-player" className="w-full h-full" />
+          {isYouTube && youtubeId ? (
+            <div className="aspect-video relative bg-black" suppressHydrationWarning>
+              <div 
+                id="youtube-player" 
+                className="absolute inset-0 w-full h-full"
+                suppressHydrationWarning
+              />
+              
+              {!playerReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
+                  <div className="text-white text-center">
+                    <div className="text-5xl mb-3 animate-spin">⏳</div>
+                    <p className="font-bold text-lg">Loading YouTube Player...</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : isYouTube ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${getYouTubeVideoId(video.video_url)}?start=${videoProgress?.timestamp_seconds || 0}`}
-              className="w-full aspect-video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
           ) : vimeoUrl ? (
             <iframe
-              src={vimeoUrl}
+              src={`https://player.vimeo.com/video/${vimeoUrl}`}
               className="w-full aspect-video"
               allow="autoplay; fullscreen; picture-in-picture"
               allowFullScreen
@@ -537,7 +612,11 @@ export default function WatchPage() {
             <div className="w-full aspect-video flex items-center justify-center bg-[#FFF5E5] text-[#8B7355]">
               <div className="text-center p-6">
                 <AlertCircle className="h-16 w-16 mx-auto mb-4 text-[#FF7A00]" />
-                <p className="mb-4 font-bold text-lg">Video tidak bisa diputar</p>
+                <p className="mb-2 font-bold text-lg">Video tidak bisa diputar</p>
+                <p className="text-sm mb-4">Platform: {video.platform}</p>
+                <p className="text-xs text-[#8B7355] mb-4 font-mono break-all max-w-md">
+                  {video.video_url}
+                </p>
                 <a
                   href={video.video_url}
                   target="_blank"
@@ -557,21 +636,20 @@ export default function WatchPage() {
             <div className="flex-1">
               <h2 className="text-2xl md:text-3xl font-black text-[#4A4A4A] mb-3">{video.title}</h2>
               <div className="flex flex-wrap items-center gap-3 text-sm font-bold">
-                <div className="flex items-center gap-1.5 text-[#8B7355] bg-[#FFF9F0] px-3 py-1.5 rounded-full border border-[#FFE0B2]">
-                  <Eye className="h-4 w-4" />
-                  <span>{video.view_count || 0} views</span>
-                </div>
+                <span className="flex items-center gap-1 text-[#8B7355]">
+                  <Eye className="h-4 w-4" /> {video.view_count} views
+                </span>
                 {video.category && (
-                  <span className="bg-[#FF7A00]/10 text-[#FF7A00] px-3 py-1.5 rounded-full border border-[#FF7A00]/20">
+                  <span className="bg-[#FFF5E5] text-[#FF7A00] px-3 py-1 rounded-full border border-[#FFE0B2]">
                     {video.category}
                   </span>
                 )}
-                <span className="bg-[#D94D2B]/10 text-[#D94D2B] px-3 py-1.5 rounded-full border border-[#D94D2B]/20">
-                  Usia {video.min_age}-{video.max_age || 18}+
+                <span className="bg-[#E3F2FD] text-[#1976D2] px-3 py-1 rounded-full border border-[#BBDEFB]">
+                  Usia {video.min_age}-{video.max_age || 18} tahun
                 </span>
               </div>
             </div>
-            
+
             {video.creator && (
               <div className="flex items-center gap-3 bg-[#FFF5E5] p-3 rounded-2xl border border-[#FFE0B2]">
                 <div className="h-10 w-10 rounded-full bg-[#FF7A00] flex items-center justify-center text-white font-black">
@@ -587,94 +665,60 @@ export default function WatchPage() {
           
           {video.description && (
             <div className="bg-[#FFF9F0] p-6 rounded-2xl border border-[#FFE0B2] mb-8">
-              <p className="text-[#8B7355] leading-relaxed font-medium">{video.description}</p>
+              <h3 className="font-black text-[#4A4A4A] mb-2 flex items-center gap-2">
+                <span className="text-xl">📝</span> Deskripsi
+              </h3>
+              <p className="text-[#8B7355] leading-relaxed font-bold">{video.description}</p>
             </div>
           )}
 
-          {/* Quiz Section */}
-          {!loadingQuizzes && quizzes.length > 0 && (
-            <div className="mt-8 pt-8 border-t-4 border-[#FFE0B2] border-dashed">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl md:text-2xl font-black text-[#4A4A4A] flex items-center gap-3 mb-2">
-                    <Brain className="h-8 w-8 text-[#FF7A00]" />
-                    Interactive Quizzes
-                    <span className="bg-[#FF7A00] text-white text-xs px-2 py-1 rounded-full">
-                      {quizzes.length}
-                    </span>
-                  </h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {quizzes.map((q) => (
-                      <div key={q.id} className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border ${
-                        completedQuizIds.has(q.id) 
-                          ? 'bg-green-100 text-green-700 border-green-200' 
-                          : 'bg-gray-100 text-gray-500 border-gray-200'
-                      }`}>
-                        <Clock className="h-3 w-3" />
-                        {Math.floor(q.timestamp_seconds / 60)}:{String(q.timestamp_seconds % 60).padStart(2, '0')}
-                        {completedQuizIds.has(q.id) && <CheckCircle2 className="h-3 w-3 ml-1" />}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                {profileId > 0 && quizzes.length > completedQuizIds.size && (
-                  <Button
-                    onClick={triggerTestQuiz}
-                    disabled={isSubmittingQuiz}
-                    className="bg-[#D94D2B] text-white hover:bg-[#BF360C] rounded-xl font-black disabled:opacity-50"
+          {/* Quiz Info */}
+          {quizzes.length > 0 && user?.role === 'parent' && (
+            <div className="bg-gradient-to-br from-[#FFF5E5] to-[#FFE0B2] p-6 rounded-2xl border-2 border-[#FF7A00]/20">
+              <h3 className="font-black text-[#4A4A4A] mb-4 flex items-center gap-2 text-lg">
+                <Brain className="h-6 w-6 text-[#FF7A00]" />
+                Quiz Interaktif ({quizzes.length})
+              </h3>
+              <div className="grid gap-3">
+                {quizzes.map((quiz, index) => (
+                  <div
+                    key={quiz.id}
+                    className="flex items-center gap-3 bg-white p-3 rounded-xl border border-[#FFE0B2]"
                   >
-                    🎯 Test Quiz
-                  </Button>
-                )}
-              </div>
-
-              <div className="h-4 bg-[#FFF5E5] rounded-full overflow-hidden border border-[#FFE0B2] mb-6">
-                <div
-                  className="h-full bg-gradient-to-r from-[#FF7A00] to-[#D94D2B] transition-all duration-500"
-                  style={{ width: `${quizzes.length > 0 ? (completedQuizIds.size / quizzes.length) * 100 : 0}%` }}
-                />
-              </div>
-
-              {completedQuizIds.size === quizzes.length && quizzes.length > 0 && (
-                <div className="bg-[#E8F5E9] border-2 border-[#4CAF50] rounded-2xl p-6 text-center animate-in zoom-in">
-                  <div className="text-4xl mb-2">🎉</div>
-                  <h4 className="text-[#2E7D32] font-black text-xl mb-1">
-                    Awesome! All quizzes completed!
-                  </h4>
-                  <p className="text-[#43A047] font-bold">
-                    You got {correctCount} out of {quizzes.length} correct! 🌟
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {loadingQuizzes && (
-            <div className="mt-8 text-center">
-              <div className="animate-bounce text-lg font-black text-[#FF7A00]">Loading quizzes...</div>
-            </div>
-          )}
-
-          {!loadingQuizzes && quizzes.length === 0 && (
-            <div className="mt-8 text-center">
-              <p className="text-[#8B7355] font-bold text-lg">📺 Video ini belum memiliki quiz</p>
-            </div>
-          )}
-
-          {!loadingQuizzes && quizzes.length > 0 && profileId === 0 && (
-            <div className="mt-6 bg-[#FFF8E1] border-2 border-[#FFC107] rounded-2xl p-4 flex items-start gap-3">
-              <AlertCircle className="h-6 w-6 text-[#FF8F00] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[#FF8F00] font-bold mb-2">
-                  Pilih profil anak untuk mengerjakan quiz!
-                </p>
-                <p className="text-sm text-[#FF8F00]/80">Kembali ke dashboard untuk memilih profil</p>
+                    {completedQuizIds.has(quiz.id) ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    ) : (
+                      <Clock className="h-5 w-5 text-[#8B7355] flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-[#4A4A4A] text-sm truncate">
+                        Quiz #{index + 1}
+                      </p>
+                      <p className="text-xs text-[#8B7355]">
+                        Muncul di {Math.floor(quiz.timestamp_seconds / 60)}:{String(quiz.timestamp_seconds % 60).padStart(2, '0')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </main>
+
+      {/* Quiz Popup */}
+      {currentQuiz && user?.role === 'parent' && (
+        <QuizPopup
+          quiz={currentQuiz}
+          onSubmit={handleQuizSubmit}
+          onClose={handleQuizClose}
+        />
+      )}
     </div>
   );
 }
+
+// ✅ Export with dynamic loading to prevent SSR
+export default dynamic(() => Promise.resolve(WatchPage), {
+  ssr: false
+});

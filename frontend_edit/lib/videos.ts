@@ -11,6 +11,7 @@ export interface Video {
   title: string;
   description: string;
   video_url: string;
+  thumbnail_url?: string;
   platform: 'youtube' | 'vimeo' | 'native';
   category: string;
   min_age: number;
@@ -24,13 +25,11 @@ export interface Video {
 }
 
 export interface VideoProgress {
-  id: number;
-  video_id: number;
-  profile_id: number;
+  profileId: number;
+  videoId: number;
   timestamp_seconds: number;
+  last_position_seconds: number;
   is_completed: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface CreateVideoData {
@@ -269,11 +268,27 @@ export const videosService = {
   },
 
   // ==================== SAVE PROGRESS ====================
-  async saveProgress(videoId: number, dto: SaveProgressDto): Promise<VideoProgress | null> {
+  async saveProgress(
+    videoId: number,
+    dto: { profileId: number; timestampSeconds: number; isCompleted?: boolean }
+  ): Promise<VideoProgress | null> {
     try {
-      console.log(`💾 Saving progress for video ${videoId}:`, dto);
-      const response = await api.post(`/videos/${videoId}/progress`, dto);
-      console.log('✅ Progress saved');
+      console.log('💾 Saving progress:', { videoId, ...dto });
+      
+      if (!dto.profileId || dto.profileId === 0) {
+        console.log('ℹ️ No profile selected, skipping progress save');
+        return null;
+      }
+
+      // ✅ FIX: Use correct endpoint /api/video/progress
+      const response = await api.post('/video/progress', {
+        videoId,
+        profileId: dto.profileId,
+        timestampSeconds: dto.timestampSeconds,
+        isCompleted: dto.isCompleted || false,
+      });
+
+      console.log('✅ Progress saved:', response.data);
       return response.data;
     } catch (error: any) {
       console.warn('⚠️ Failed to save progress (non-critical):', error.message);
@@ -285,30 +300,36 @@ export const videosService = {
   async getProgress(videoId: number, profileId: number): Promise<VideoProgress | null> {
     try {
       console.log(`📊 Getting progress for video ${videoId}, profile ${profileId}`);
-      const response = await api.get(`/videos/${videoId}/progress/${profileId}`);
-      console.log('✅ Progress retrieved');
+      
+      if (!profileId || profileId === 0) {
+        console.log('ℹ️ No profile selected, returning null');
+        return null;
+      }
+
+      // ✅ FIX: Use correct endpoint /api/video/:videoId/progress?profileId=X
+      const response = await api.get(`/video/${videoId}/progress?profileId=${profileId}`);
+      console.log('✅ Progress retrieved:', response.data);
+      
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 404) {
-        console.log('ℹ️ No progress found');
+        console.log('ℹ️ No progress found for this video');
         return null;
       }
       console.error('❌ Error getting progress:', error);
-      throw error;
+      return null;
     }
   },
 
   // ==================== INCREMENT VIEW ====================
-  async incrementView(id: number): Promise<Video | null> {
+  async incrementView(id: number): Promise<void> {
     try {
       console.log(`👁 Incrementing view for video ${id}`);
       const response = await api.post(`/videos/${id}/view`);
-      const video = parseVideoResponse(response.data);
-      console.log('✅ View incremented');
-      return video;
-    } catch (error) {
-      console.warn('⚠️ Failed to increment view (non-critical):', error);
-      return null;
+      console.log('✅ View incremented:', response.data.view_count);
+    } catch (error: any) {
+      console.warn('⚠️ Failed to increment view (non-critical):', error.message);
+      // Don't throw - ini non-critical operation
     }
   },
 
