@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -53,6 +54,20 @@ export class QuizzesController {
   async getQuiz(@Param('id', ParseIntPipe) id: number) {
     console.log(`📥 Fetching quiz ${id}`);
     return this.quizzesService.findById(id);
+  }
+
+  // Delete quiz
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete quiz' })
+  async deleteQuiz(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtUser,
+  ) {
+    console.log(`🗑 Deleting quiz ${id}`);
+    if (user.role !== 'creator' && user.role !== 'admin') {
+      throw new ForbiddenException('Hanya creator yang dapat menghapus quiz');
+    }
+    return this.quizzesService.delete(id, user.userId);
   }
 
   // Submit quiz answer - CRITICAL ENDPOINT

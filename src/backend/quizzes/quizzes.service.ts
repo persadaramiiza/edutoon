@@ -332,4 +332,34 @@ export class QuizzesService {
       last_attempt: lastAttempt,
     } as any;
   }
+
+  // Delete quiz
+  async delete(id: number, userId: number): Promise<void> {
+    console.log(`🗑 Deleting quiz ${id} by user ${userId}`);
+    
+    const quiz = await this.quizRepo.findOne({
+      where: { id },
+      relations: ['video'],
+    });
+
+    if (!quiz) {
+      throw new NotFoundException('Quiz tidak ditemukan');
+    }
+
+    // Check ownership
+    if (quiz.video.creator_id !== userId) {
+      throw new ForbiddenException('Anda tidak bisa menghapus quiz ini');
+    }
+
+    // Delete options first (cascade should handle this but just in case)
+    await this.optionRepo.delete({ quizId: id });
+    
+    // Delete attempts
+    await this.attemptRepo.delete({ quiz_id: id });
+    
+    // Delete quiz
+    await this.quizRepo.delete(id);
+    
+    console.log(`✅ Quiz ${id} deleted successfully`);
+  }
 }
