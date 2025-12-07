@@ -1,98 +1,199 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+# EduToon 🎓
+  <strong>Platform Video Edukatif untuk Anak-Anak</strong>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📖 Deskripsi
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**EduToon** adalah platform pembelajaran interaktif yang menggabungkan konten video edukatif dengan format webtoon yang menyenangkan untuk anak-anak. Sistem ini dirancang untuk membuat pembelajaran menjadi lebih engaging, interaktif, dan menyenangkan melalui kombinasi visual storytelling dan kuis edukatif.
 
-## Description
+Platform ini menyediakan fitur komprehensif untuk pembelajaran online, termasuk manajemen video, kuis interaktif, pelacakan riwayat menonton, dan profil pengguna yang dipersonalisasi.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## ✨ Fitur Utama
 
-## Project setup
+### Untuk Siswa
+- **Konten Video Edukatif** - Video pembelajaran dalam format webtoon yang menarik
+- **Kuis Interaktif** - Kuis setelah video untuk menguji pemahaman
+- **Profil Pengguna** - Profil yang dapat dipersonalisasi dengan avatar unik 
+- **Dashboard Pembelajaran** - Ringkasan progress dan statistik pembelajaran
+- **Riwayat Menonton** - Pelacakan video yang telah ditonton
+- **Pencapaian & Badge** - Sistem reward untuk memotivasi pembelajaran
 
+### Untuk Kreator
+- **Dashboard Kreator** - Panel untuk mengelola konten
+- **Manajemen Video** - Upload dan kelola video edukatif
+- **Manajemen Kuis** - Buat dan edit kuis untuk setiap video
+
+### Keamanan & Performa
+- **Autentikasi JWT** - Keamanan berbasis JWT token
+- **Rate Limiting** - Proteksi terhadap abuse (60 request/menit per IP)
+- **Security Headers** - Helmet.js untuk keamanan HTTP
+- **Database PostgreSQL** - Penyimpanan data yang reliable
+
+## 🏗️ Arsitektur Sistem
+
+### Backend (NestJS)
+- Framework modern dengan struktur modular
+- REST API dengan dokumentasi Swagger
+- TypeORM untuk management database
+- Validasi input dengan class-validator
+
+**Modules:**
+- `auth` - Autentikasi dan otorisasi
+- `users` - Manajemen pengguna dan akun
+- `profiles` - Profil pengguna dan preferensi
+- `videos` - Manajemen konten video
+- `quizzes` - Manajemen kuis dan attemp kuis
+- `watch-history` - Pelacakan riwayat menonton
+- `health` - Health check endpoint
+
+### Frontend (Next.js 16 + React 19)
+- Modern React with Server Components
+- Tailwind CSS untuk styling
+- Framer Motion untuk animasi
+- Axios untuk API communication
+- Context API untuk state management
+
+**Halaman Utama:**
+- Login & Register
+- Landing Page (Beranda)
+- Dashboard Siswa
+- Watch Video dengan Player
+- Quiz/Kuis
+- Profile Management
+- Creator Dashboard
+
+## 🚀 Setup & Instalasi
+
+### Instalasi 
+
+#### 1. Clone Repository
 ```bash
-$ npm install
+git clone https://github.com/persadaramiiza/edutoon.git
+cd edutoon
 ```
 
-## Compile and run the project
-
+#### 2. Setup Backend
 ```bash
-# development
-$ npm run start
+# Install dependencies
+pnpm install
 
-# watch mode
-$ npm run start:dev
+# Setup environment variables
+cp .env.example .env
+# Edit .env dengan konfigurasi database Anda
 
-# production mode
-$ npm run start:prod
+# Generate migration jika diperlukan
+pnpm run typeorm migration:generate src/migrations/InitialSchema
+
+# Development mode
+pnpm run start:dev
+
+# Production build
+pnpm run build
+pnpm run start:prod
 ```
 
-## Run tests
-
+#### 3. Setup Frontend
 ```bash
-# unit tests
-$ npm run test
+cd frontend
 
-# e2e tests
-$ npm run test:e2e
+# Install dependencies
+pnpm install
 
-# test coverage
-$ npm run test:cov
+# Development mode (port 3333)
+pnpm run dev
+
+# Production build
+pnpm run build
+pnpm run start
 ```
 
-## Deployment
+## 📡 API Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Authentication
+- `POST /auth/register` - Register akun baru
+- `POST /auth/login` - Login pengguna
+- `POST /auth/refresh` - Refresh JWT token
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Users
+- `GET /users/profile` - Get profil pengguna saat ini
+- `PUT /users/profile` - Update profil pengguna
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+### Profiles
+- `GET /profiles` - List semua profil pengguna
+- `POST /profiles` - Create profil baru
+
+### Videos
+- `GET /videos` - List semua video
+- `GET /videos/:id` - Detail video
+- `POST /videos` - Upload video baru (creator only)
+- `PUT /videos/:id` - Update video
+- `DELETE /videos/:id` - Hapus video
+
+### Quizzes
+- `GET /quizzes/:videoId` - Get kuis untuk video tertentu
+- `POST /quizzes/attempt` - Submit jawaban kuis
+- `GET /quizzes/attempt/:attemptId` - Get hasil attempt
+
+### Watch History
+- `GET /watch-history` - Get riwayat menonton pengguna
+- `POST /watch-history` - Record menonton video
+- `DELETE /watch-history/:id` - Hapus riwayat
+
+### Health Check
+- `GET /health` - Cek status aplikasi
+
+## 📁 Struktur Project
+
+```
+edutoon/
+├── src/
+│   └── backend/
+│       ├── auth/              
+│       ├── users/             
+│       ├── profiles/          
+│       ├── videos/            
+│       ├── quizzes/           
+│       ├── watch-history/     
+│       ├── health/            
+│       ├── app.module.ts      
+│       └── main.ts            
+├── frontend/
+│   ├── app/                   
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── dashboard/
+│   │   ├── creator/
+│   │   ├── watch/
+│   │   └── profile/
+│   ├── components/            
+│   ├── contexts/              
+│   ├── lib/                   
+│   └── public/                
+├── test/                      
+├── docker-compose.yml
+├── ecosystem.config.js        
+└── README.md
+
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 📊 Database Schema
 
-## Resources
+**Main Entities:**
+- `User` - Akun pengguna (email, password, role)
+- `Profile` - Profil pengguna (nama, avatar, bio)
+- `Video` - Konten video edukatif
+- `Quiz` - Kuis/soal untuk video
+- `QuizOption` - Opsi jawaban kuis
+- `QuizAttempt` - Rekam percobaan menjawab kuis
+- `WatchHistory` - Riwayat video yang ditonton
 
-Check out a few resources that may come in handy when working with NestJS:
+## Contibutor
+1. Kevin Azra (18223029)
+2. Persada Ramiiza Abyudaya (18223033)
+3. Inggried Amelia Deswanty (18223035)
+4. Muhammad Aqmar Fayyaz Zakaria (18223043)
+5. Velicia Christina Gabriel (18223085) 
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
-## Support
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

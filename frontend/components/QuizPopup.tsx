@@ -299,7 +299,7 @@ export default function QuizPopup({ quiz, onSubmit, onClose, profileId }: QuizPo
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={handleHint}
-            disabled={hintLoading || hintLoading === true}
+            disabled={hintLoading}
             className="px-4 py-2 bg-white border border-[#FFE0B2] rounded-xl font-bold hover:bg-[#FFF5E5]"
           >
             {hintLoading ? 'Mengambil hint...' : 'Minta Hint'}
