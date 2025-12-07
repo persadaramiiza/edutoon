@@ -28,16 +28,8 @@ export class QuizzesController {
   // NOTE: Create quiz endpoint moved to VideosController to avoid route conflict
   // POST /api/videos/:videoId/quizzes is handled by VideosController
 
-
-  // Get quizzes untuk video tertentu
-  @Get('videos/:videoId/quizzes')
-  @ApiOperation({ summary: 'Get all quizzes for a video' })
-  async getQuizzesForVideo(
-    @Param('videoId', ParseIntPipe) videoId: number,
-  ) {
-    console.log(`📥 Fetching quizzes for video ${videoId}`);
-    return this.quizzesService.getQuizzesForVideo(videoId);
-  }
+  // NOTE: Get quizzes for video moved to VideosController
+  // GET /api/videos/:videoId/quizzes is handled by VideosController
 
   // Get randomized quizzes for a video (optionally excluding quizzes profile already attempted)
   @Get('videos/:videoId/quizzes/random/:profileId')

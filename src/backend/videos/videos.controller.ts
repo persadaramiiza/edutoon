@@ -59,6 +59,16 @@ export class VideosController {
     return this.quizzesService.create(dto, user.userId);
   }
 
+  // ==================== GET QUIZZES FOR VIDEO ====================
+  @Get(':videoId/quizzes')
+  @ApiOperation({ summary: 'Get all quizzes for a video' })
+  async getQuizzesForVideo(
+    @Param('videoId', ParseIntPipe) videoId: number,
+  ) {
+    console.log(`📥 Fetching quizzes for video ${videoId}`);
+    return this.quizzesService.getQuizzesForVideo(videoId);
+  }
+
   // ==================== GET ALL VIDEOS ====================
   @Get()
   @ApiOperation({ summary: 'Get semua published videos' })
@@ -86,12 +96,14 @@ export class VideosController {
     return this.videosService.getByCreator(user.userId);
   }
 
-  // ==================== GET QUIZZES BY VIDEO ====================
+  // ==================== GET QUIZZES BY VIDEO (Legacy/Duplicate - Removed) ====================
+  /*
   @Get(':videoId/quizzes')
   @ApiOperation({ summary: 'Get quizzes untuk video' })
   async getVideoQuizzes(@Param('videoId', ParseIntPipe) videoId: number) {
     return this.videosService.getQuizzes(videoId);
   }
+  */
 
   // ==================== GET VIDEO PROGRESS ====================
   @Get(':id/progress/:profileId')
