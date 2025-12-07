@@ -87,9 +87,10 @@ export class QuizzesController {
   }
 
   // Create new quiz (creator only)
-  @Post('quizzes')
+  @Post('videos/:videoId/quizzes')
   @ApiOperation({ summary: 'Create a new quiz (creator only)' })
   async createQuiz(
+    @Param('videoId', ParseIntPipe) videoId: number,
     @Body() dto: CreateQuizDto,
     @CurrentUser() user: JwtUser,
   ) {
@@ -97,6 +98,9 @@ export class QuizzesController {
     if (user.role !== 'creator' && user.role !== 'admin') {
       throw new ForbiddenException('Hanya creator yang dapat menambahkan quiz');
     }
+    
+    // Ensure videoId in DTO matches URL param
+    dto.videoId = videoId;
 
     return this.quizzesService.create(dto, user.userId);
   }
