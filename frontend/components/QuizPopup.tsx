@@ -66,7 +66,7 @@ export default function QuizPopup({ quiz, onSubmit, onClose, profileId }: QuizPo
         // show a short success then close
         setTimeout(() => {
           onClose();
-        }, 600);
+        }, 2000);
       }
       // If session attempts reached limit and still incorrect, request reveal
       if (!isCorrect && sessionAttempts + 1 >= maxAttempts) {

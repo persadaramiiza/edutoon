@@ -162,7 +162,7 @@ function ReportContent() {
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-bold text-[#4A4A4A] text-sm group-hover:text-[#FF7A00] transition-colors truncate">{item.title || 'Video'}</p>
+                            <p className="font-bold text-[#4A4A4A] text-sm group-hover:text-[#FF7A00] transition-colors line-clamp-2">{item.title || 'Video'}</p>
                             <p className="text-xs text-[#8B7355]">{Math.round(item.last_position_seconds / 60)} menit ditonton</p>
                           </div>
                         </div>
