@@ -37,13 +37,13 @@ export default function LoginPage() {
       
       {/* Background Decorations */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-         <div className="absolute -top-20 -left-20 w-64 h-64 bg-[#FF7A00]/10 rounded-full blur-3xl"></div>
-         <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#D94D2B]/10 rounded-full blur-3xl"></div>
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#FF7A00]/5 rounded-full blur-3xl"></div>
+         <img src="/images/new-castle.png" className="absolute bottom-0 w-full opacity-20" alt="Castle" />
          <img src="/images/new-sun-cloud.png" className="absolute top-10 right-10 w-24 opacity-80 animate-pulse" alt="Sun" />
       </div>
 
       {/* Left Side - Illustration (Hidden on mobile) */}
-      <div className="hidden md:flex md:w-1/2 relative items-center justify-center p-12 z-10">
+      <div className="hidden md:flex md:w-1/2 relative items-center justify-center p-12 z-10 bg-[#FFF5E5] border-r-4 border-[#FFE0B2]">
         <div className="relative w-full max-w-lg text-center">
           <div className="mb-8 relative inline-block">
              <img src="/images/desain-20tanpa-20judul-20-286-29.png" alt="EduToon Logo" className="h-24 mx-auto drop-shadow-lg hover:rotate-12 transition-transform duration-300" />
