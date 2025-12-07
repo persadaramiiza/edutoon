@@ -25,8 +25,21 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 export class QuizzesController {
   constructor(private readonly quizzesService: QuizzesService) {}
 
-  // NOTE: Create quiz endpoint moved to VideosController to avoid route conflict
-  // POST /api/videos/:videoId/quizzes is handled by VideosController
+  // Create new quiz
+  @Post('quizzes')
+  @ApiOperation({ summary: 'Create a new quiz' })
+  async createQuiz(
+    @Body() dto: CreateQuizDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    console.log('📤 Create quiz request:', dto);
+    if (user.role !== 'creator' && user.role !== 'admin') {
+      throw new ForbiddenException('Hanya creator yang dapat menambahkan quiz');
+    }
+    return this.quizzesService.create(dto, user.userId);
+  }
+
+  // NOTE: Get quizzes for video moved to VideosController
 
   // NOTE: Get quizzes for video moved to VideosController
   // GET /api/videos/:videoId/quizzes is handled by VideosController

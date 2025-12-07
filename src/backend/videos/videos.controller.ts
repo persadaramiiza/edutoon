@@ -44,7 +44,8 @@ export class VideosController {
     return this.videosService.create(dto, user.userId);
   }
 
-  // ==================== CREATE QUIZ FOR VIDEO ====================
+  // ==================== CREATE QUIZ FOR VIDEO (Moved to QuizzesController) ====================
+  /*
   @Post(':videoId/quizzes')
   @UseGuards(RolesGuard)
   @Roles(Role.CREATOR, Role.ADMIN)
@@ -58,6 +59,7 @@ export class VideosController {
     dto.videoId = videoId;
     return this.quizzesService.create(dto, user.userId);
   }
+  */
 
   // ==================== GET QUIZZES FOR VIDEO ====================
   @Get(':videoId/quizzes')

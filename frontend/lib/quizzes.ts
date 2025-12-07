@@ -53,7 +53,8 @@ export const quizzesService = {
   // Create new quiz
   async create(data: CreateQuizDto): Promise<Quiz> {
     console.log('📝 Creating quiz:', data);
-    const response = await api.post(`/videos/${data.videoId}/quizzes`, data);
+    // Changed to /quizzes to avoid routing conflict with /videos/:id
+    const response = await api.post(`/quizzes`, data);
     return response.data;
   },
 

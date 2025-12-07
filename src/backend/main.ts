@@ -74,6 +74,33 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
+  const server = app.getHttpServer();
+  const router = server._events.request._router;
+
+  const availableRoutes: [] = router.stack
+    .map((layer) => {
+      if (layer.route) {
+        return {
+          route: {
+            path: layer.route?.path,
+            method: layer.route?.stack[0].method,
+          },
+        };
+      } else if (layer.name === 'router') {  // router middleware 
+        return layer.handle.stack.map((handler) => {
+            return {
+                route: {
+                    path: handler.route?.path,
+                    method: handler.route?.stack[0].method,
+                }
+            }
+        });
+      }
+    })
+    .filter((item) => item !== undefined);
+  
+  logger.log('Available Routes: ' + JSON.stringify(availableRoutes, null, 2));
+
   logger.log(`🚀 Application running on: http://localhost:${port}`);
   logger.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
   logger.log(`❤️ Health check: http://localhost:${port}/api/health`);
