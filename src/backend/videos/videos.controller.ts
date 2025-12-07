@@ -69,6 +69,20 @@ export class VideosController {
     return this.quizzesService.getQuizzesForVideo(videoId);
   }
 
+  // ==================== GET RANDOMIZED QUIZZES FOR VIDEO ====================
+  @Get(':videoId/quizzes/random/:profileId')
+  @ApiOperation({ summary: 'Get randomized quizzes for a video for a given profile' })
+  @ApiQuery({ name: 'count', required: false })
+  async getRandomQuizzesForVideo(
+    @Param('videoId', ParseIntPipe) videoId: number,
+    @Param('profileId', ParseIntPipe) profileId: number,
+    @Query('count') count?: string,
+  ) {
+    const n = count ? Math.max(1, Number(count)) : 1;
+    console.log(`📥 Fetching ${n} randomized quiz(es) for video ${videoId} and profile ${profileId}`);
+    return this.quizzesService.getRandomQuizzesForVideo(videoId, profileId, n);
+  }
+
   // ==================== GET ALL VIDEOS ====================
   @Get()
   @ApiOperation({ summary: 'Get semua published videos' })

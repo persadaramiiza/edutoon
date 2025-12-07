@@ -31,19 +31,8 @@ export class QuizzesController {
   // NOTE: Get quizzes for video moved to VideosController
   // GET /api/videos/:videoId/quizzes is handled by VideosController
 
-  // Get randomized quizzes for a video (optionally excluding quizzes profile already attempted)
-  @Get('videos/:videoId/quizzes/random/:profileId')
-  @ApiOperation({ summary: 'Get randomized quizzes for a video for a given profile' })
-  @ApiQuery({ name: 'count', required: false })
-  async getRandomQuizzesForVideo(
-    @Param('videoId', ParseIntPipe) videoId: number,
-    @Param('profileId', ParseIntPipe) profileId: number,
-    @Query('count') count?: string,
-  ) {
-    const n = count ? Math.max(1, Number(count)) : 1;
-    console.log(`📥 Fetching ${n} randomized quiz(es) for video ${videoId} and profile ${profileId}`);
-    return this.quizzesService.getRandomQuizzesForVideo(videoId, profileId, n);
-  }
+  // NOTE: Get randomized quizzes moved to VideosController
+  // GET /api/videos/:videoId/quizzes/random/:profileId is handled by VideosController
 
   // Get quiz by ID
   @Get('quizzes/:id')
