@@ -14,16 +14,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setIsLoading(true);
 
     try {
       await login(email, password);
-      router.push('/dashboard');
+      setSuccess('Login successful! Redirecting...');
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || 'Login failed. Please check your email and password.';
       setError(errorMsg);
@@ -87,6 +92,16 @@ export default function LoginPage() {
               className="bg-[#FFF5E5] border-l-4 border-[#D94D2B] text-[#D94D2B] p-4 rounded-r-xl mb-6 font-bold text-sm"
             >
               {error}
+            </motion.div>
+          )}
+
+          {success && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-r-xl mb-6 font-bold text-sm"
+            >
+              {success}
             </motion.div>
           )}
 

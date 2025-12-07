@@ -29,9 +29,14 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Jangan redirect jika error dari login (wrong password/email)
+      if (error.config?.url?.includes('/auth/login')) {
+        return Promise.reject(error);
+      }
+
       // Token expired atau invalid
       Cookies.remove('access_token');
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
