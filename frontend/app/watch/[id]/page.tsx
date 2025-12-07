@@ -442,7 +442,7 @@ function WatchPage() {
     });
 
     try {
-      const response = await api.post('/quiz/submit', {
+      const response = await api.post('/quizzes/submit', {
         quizId: currentQuiz.id,
         profileId: profileId,
         selectedOptionId: selectedOptionId,
