@@ -22,13 +22,18 @@ import { UpdateVideoDto } from './dto/update-video.dto';
 import { SaveVideoProgressDto } from './dto/save-video-progress.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { Role } from '../auth/role.enum';
+import { QuizzesService } from '../quizzes/quizzes.service';
+import { CreateQuizDto } from '../quizzes/dto/create-quiz.dto';
 
 @ApiTags('Videos')
 @Controller('api/videos')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class VideosController {
-  constructor(private readonly videosService: VideosService) {}
+  constructor(
+    private readonly videosService: VideosService,
+    private readonly quizzesService: QuizzesService,
+  ) {}
 
    // ==================== CREATE VIDEO ====================
   @Post()
@@ -37,6 +42,21 @@ export class VideosController {
   @ApiOperation({ summary: 'Create video baru' })
   async createVideo(@Body() dto: CreateVideoDto, @CurrentUser() user: JwtUser) {
     return this.videosService.create(dto, user.userId);
+  }
+
+  // ==================== CREATE QUIZ FOR VIDEO ====================
+  @Post(':videoId/quizzes')
+  @UseGuards(RolesGuard)
+  @Roles(Role.CREATOR, Role.ADMIN)
+  @ApiOperation({ summary: 'Create quiz untuk video' })
+  async createQuiz(
+    @Param('videoId', ParseIntPipe) videoId: number,
+    @Body() dto: CreateQuizDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    // Ensure videoId in DTO matches URL param
+    dto.videoId = videoId;
+    return this.quizzesService.create(dto, user.userId);
   }
 
   // ==================== GET ALL VIDEOS ====================
