@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui" 
 import { LoadingPage } from '@/components/ui/Loading';
 import { PlayCircle, ShieldCheck, Brain, Users, Heart, CheckCircle2, Menu, X, Star } from "lucide-react"
+import { motion } from "framer-motion";
 
 const questions = [
   {
@@ -194,7 +195,12 @@ export default function LandingPage() {
               
               {/* HERO TEXT */}
               <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 mb-12 md:mb-16">
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#4A4A4A] leading-[1.1] drop-shadow-sm">
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-[#4A4A4A] leading-[1.1] drop-shadow-sm"
+                  >
                     Learning Made{" "}
                     <span className="text-[#FF7A00] relative inline-block transform hover:scale-105 transition-transform duration-300 cursor-default">
                       Fun
@@ -216,36 +222,55 @@ export default function LandingPage() {
                     <span className="text-[#D94D2B] relative inline-block transform hover:rotate-3 transition-transform duration-300 cursor-default">
                       Smart!
                     </span>
-                  </h1>
+                  </motion.h1>
                   
-                  <p className="text-lg sm:text-xl md:text-2xl text-[#8B7355] max-w-[700px] font-bold leading-relaxed mx-auto drop-shadow-sm px-4">
+                  <motion.p 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+                    className="text-lg sm:text-xl md:text-2xl text-[#8B7355] max-w-[700px] font-bold leading-relaxed mx-auto drop-shadow-sm px-4"
+                  >
                     EduToon invites kids to learn while playing with interactive videos. Fun quizzes make understanding
                     even better! 🚀
-                  </p>
+                  </motion.p>
                 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+                  className="flex flex-col sm:flex-row gap-4 justify-center px-4"
+                >
                   <Link href="/dashboard" className="w-full sm:w-auto">
-                    <Button
-                      size="lg"
-                      variant="ghost"
-                      className="w-full text-base md:text-lg h-14 md:h-16 px-8 md:px-10 rounded-full shadow-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black"
-                    >
-                      <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" />
-                      Start Adventure
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard" className="w-full sm:w-auto">
-                    <Button 
-                        size="lg" 
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        size="lg"
                         variant="ghost"
-                        className="w-full text-base md:text-lg h-14 md:h-16 px-8 md:px-10 rounded-full bg-white text-[#FF7A00] border-2 border-[#FF7A00] hover:bg-[#FFF5E5] font-black"
-                    >
-                      Parent Dashboard
-                    </Button>
+                        className="w-full text-base md:text-lg h-14 md:h-16 px-8 md:px-10 rounded-full shadow-xl bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black"
+                      >
+                        <PlayCircle className="mr-2 h-5 w-5 md:h-6 md:w-6" />
+                        Start Adventure
+                      </Button>
+                    </motion.div>
                   </Link>
-                </div>
+                  <Link href="/dashboard" className="w-full sm:w-auto">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button 
+                          size="lg" 
+                          variant="ghost"
+                          className="w-full text-base md:text-lg h-14 md:h-16 px-8 md:px-10 rounded-full bg-white text-[#FF7A00] border-2 border-[#FF7A00] hover:bg-[#FFF5E5] font-black"
+                      >
+                        Parent Dashboard
+                      </Button>
+                    </motion.div>
+                  </Link>
+                </motion.div>
 
-                <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm font-bold text-[#8B7355] px-4 pt-4">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1, delay: 0.6 }}
+                  className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm font-bold text-[#8B7355] px-4 pt-4"
+                >
                   <div className="flex items-center gap-2 bg-white/80 px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-[#FFE0B2] shadow-sm">
                     <ShieldCheck className="h-4 w-4 md:h-5 md:w-5 text-[#D94D2B]" />
                     <span>Kid Safe</span>
@@ -258,7 +283,7 @@ export default function LandingPage() {
                     <Heart className="h-4 w-4 md:h-5 md:w-5 text-[#FF7A00]" />
                     <span>Made with Love</span>
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               {/* VIDEO PREVIEW CARD (Naga Quiz) */}
@@ -338,7 +363,13 @@ export default function LandingPage() {
           <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-[#FF7A00]/20 to-transparent -z-10 rounded-t-[2rem] md:rounded-t-[3rem]" />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center mb-12 md:mb-16 max-w-4xl mx-auto bg-white/80 backdrop-blur-sm p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl border-4 border-white ring-4 ring-[#FF7A00]/10">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-12 md:mb-16 max-w-4xl mx-auto bg-white/80 backdrop-blur-sm p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-xl border-4 border-white ring-4 ring-[#FF7A00]/10"
+            >
               <span className="inline-block px-4 py-1.5 md:px-6 md:py-2 rounded-full bg-[#FF7A00] text-white font-black tracking-wider uppercase text-xs md:text-sm mb-4 md:mb-6 shadow-lg transform -rotate-2 hover:rotate-0 transition-transform">
                 Why EduToon?
               </span>
@@ -354,7 +385,7 @@ export default function LandingPage() {
               <p className="text-lg md:text-xl text-[#8B7355] font-bold leading-relaxed max-w-2xl mx-auto">
                 We combine entertainment and education in a safe way, so parents can relax and kids can have fun!
               </p>
-            </div>
+            </motion.div>
             <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-3">
               {[
                 {
@@ -382,9 +413,14 @@ export default function LandingPage() {
                   desc: "Monitor learning progress and set specific profiles for each child easily.",
                 },
               ].map((feature, i) => (
-                <div
+                <motion.div
                   key={i}
-                  className={`bg-[#FFF9F0] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-lg border-b-4 md:border-b-8 ${feature.border} hover:shadow-xl transition-all hover:-translate-y-2 group cursor-default`}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.2 }}
+                  whileHover={{ y: -10 }}
+                  className={`bg-[#FFF9F0] p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] shadow-lg border-b-4 md:border-b-8 ${feature.border} group cursor-default`}
                 >
                   <div
                     className={`h-16 w-16 md:h-20 md:w-20 rounded-[1rem] md:rounded-[1.5rem] ${feature.bg} flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 shadow-inner`}
@@ -393,7 +429,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="text-xl md:text-2xl font-black text-[#4A4A4A] mb-2 md:mb-3">{feature.title}</h3>
                   <p className="text-[#8B7355] leading-relaxed font-bold text-sm md:text-base">{feature.desc}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -405,14 +441,20 @@ export default function LandingPage() {
           <div className="absolute bottom-0 w-full h-24 md:h-32 bg-[url('/images/new-stone-path.png')] bg-repeat-x opacity-30 -z-10" />
 
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-12 md:mb-16"
+            >
               <span className="inline-block px-4 py-1 rounded-full bg-white text-[#FF7A00] font-black tracking-wider uppercase text-xs md:text-sm mb-4 border-2 border-[#FF7A00]/20">
                 Easy Steps
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#4A4A4A] mb-4">
                 Start Your <span className="text-[#FF7A00]">Adventure</span>
               </h2>
-            </div>
+            </motion.div>
 
             <div className="grid gap-8 grid-cols-1 md:grid-cols-3 relative">
               <div className="hidden md:block absolute top-10 left-[16%] right-[16%] h-2 bg-white border-y-4 border-dashed border-[#FFE0B2] z-0" />
@@ -421,13 +463,20 @@ export default function LandingPage() {
                 { step: "02", title: "Watch & Play", desc: "Enjoy interactive videos and take quizzes.", color: "bg-[#FFD93D]", rotate: "rotate-3" },
                 { step: "03", title: "Earn Rewards", desc: "Collect badges and track progress!", color: "bg-[#FF7A00]", rotate: "-rotate-3" },
               ].map((item, i) => (
-                <div key={i} className="relative z-10 flex flex-col items-center text-center group">
+                <motion.div 
+                  key={i} 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.3 }}
+                  className="relative z-10 flex flex-col items-center text-center group"
+                >
                   <div className={`w-20 h-20 md:w-24 md:h-24 rounded-[1.5rem] md:rounded-[2rem] ${item.color} flex items-center justify-center text-white text-2xl md:text-3xl font-black border-4 border-white shadow-xl mb-4 md:mb-6 transform transition-transform duration-300 group-hover:scale-110 ${item.rotate}`}>
                     {item.step}
                   </div>
                   <h3 className="text-xl md:text-2xl font-black text-[#4A4A4A] mb-2">{item.title}</h3>
                   <p className="text-[#8B7355] font-bold px-4 md:px-8 text-sm md:text-base">{item.desc}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -436,19 +485,33 @@ export default function LandingPage() {
         {/* ================= TESTIMONIALS ================= */}
         <section className="py-16 md:py-24 bg-white relative">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-12 md:mb-16"
+            >
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#4A4A4A] mb-4">
                 Parents <span className="text-[#D94D2B]">Love Us!</span>
               </h2>
               <p className="text-lg md:text-xl text-[#8B7355] font-bold">See what other moms and dads are saying.</p>
-            </div>
+            </motion.div>
             <div className="grid gap-8 grid-cols-1 md:grid-cols-3 pt-10 md:pt-0">
               {[
                 { name: "Mama Sarah", role: "Mother of 2", avatar: "/images/rabbit-avatar.png", bg: "bg-pink-50", text: "EduToon is a lifesaver! My kids engage with the quizzes instead of just staring at the screen." },
                 { name: "Papa Doni", role: "Father of Budi", avatar: "/images/lion-avatar.png", bg: "bg-orange-50", text: "The safety features give me peace of mind. Finally, a platform I can trust 100%." },
                 { name: "Bunda Rina", role: "Mother of 5yo", avatar: "/images/panda-avatar.png", bg: "bg-blue-50", text: "My son learned to count in just a week! The characters are so cute and friendly." },
               ].map((review, i) => (
-                <div key={i} className={`p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] ${review.bg} border-4 border-white shadow-lg hover:shadow-xl transition-all hover:-translate-y-2 relative mt-10 md:mt-0`}>
+                <motion.div 
+                  key={i} 
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.2 }}
+                  whileHover={{ y: -10 }}
+                  className={`p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] ${review.bg} border-4 border-white shadow-lg hover:shadow-xl transition-all relative mt-10 md:mt-0`}
+                >
                   <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white shadow-md bg-white overflow-hidden">
                     <img src={review.avatar} alt={review.name} className="w-full h-full object-cover" />
                   </div>
@@ -462,7 +525,7 @@ export default function LandingPage() {
                     <h4 className="font-black text-lg text-[#4A4A4A]">{review.name}</h4>
                     <span className="text-xs md:text-sm font-bold text-[#8B7355]/50 uppercase tracking-wide">{review.role}</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -470,7 +533,13 @@ export default function LandingPage() {
 
         {/* ================= CTA SECTION ================= */}
         <section className="py-16 md:py-20 container mx-auto px-4 sm:px-6 lg:px-8 mb-10 md:mb-20">
-          <div className="bg-[#4A4A4A] rounded-[2rem] md:rounded-[3rem] p-6 md:p-16 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center gap-8 md:gap-10">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="bg-[#4A4A4A] rounded-[2rem] md:rounded-[3rem] p-6 md:p-16 relative overflow-hidden shadow-2xl flex flex-col md:flex-row items-center gap-8 md:gap-10"
+          >
             <div className="absolute inset-0 opacity-10 bg-[url('/images/new-landing-bg.png')] bg-cover bg-center mix-blend-overlay" />
             <div className="relative z-10 flex-1 text-center md:text-left">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 md:mb-6 leading-tight">
@@ -482,9 +551,11 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link href="/register" className="w-full sm:w-auto">
-                  <Button size="lg" variant="ghost" className="bg-[#FFD93D] text-[#4A4A4A] hover:bg-white border-b-4 border-[#FF7A00] w-full text-lg md:text-xl h-14 md:h-16 px-8 md:px-10 rounded-2xl font-black">
-                    Get Started Free
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button size="lg" variant="ghost" className="bg-[#FFD93D] text-[#4A4A4A] hover:bg-white border-b-4 border-[#FF7A00] w-full text-lg md:text-xl h-14 md:h-16 px-8 md:px-10 rounded-2xl font-black">
+                      Get Started Free
+                    </Button>
+                  </motion.div>
                 </Link>
               </div>
             </div>
@@ -495,7 +566,7 @@ export default function LandingPage() {
                  <img src="/images/new-dragon.png" alt="Dragon" className="absolute -top-8 -right-8 md:-top-10 md:-right-10 w-24 h-24 md:w-32 md:h-32 animate-pulse object-contain hidden lg:block" />
                </div>
             </div>
-          </div>
+          </motion.div>
         </section>
       </main>
 

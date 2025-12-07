@@ -47,24 +47,50 @@ export const reportService = {
     try {
       // Fetch watch history with profileId query parameter
       const watchHistoryRes = await api.get(`/video/continue-watching?profileId=${profileId}`);
-      const watchHistory = watchHistoryRes.data || [];
+      const watchHistoryRaw = watchHistoryRes.data || [];
+      
+      // Flatten the structure to match RecentVideo interface
+      const watchHistory = watchHistoryRaw.map((item: any) => ({
+        id: item.video.id,
+        title: item.video.title,
+        video_url: item.video.video_url || '',
+        thumbnail_url: item.video.thumbnail_url,
+        duration_seconds: item.video.duration_seconds,
+        category: item.video.category,
+        last_position_seconds: item.last_position_seconds,
+        is_completed: item.is_completed,
+        updated_at: item.updated_at
+      }));
 
       // Fetch recent videos with profileId query parameter
       const recentRes = await api.get(`/video/recent?profileId=${profileId}`);
-      const recentVideos = recentRes.data || [];
+      const recentVideosRaw = recentRes.data || [];
+      
+      // Flatten recent videos too if needed (backend returns nested video object)
+      const recentVideos = recentVideosRaw.map((item: any) => ({
+        id: item.video.id,
+        title: item.video.title,
+        video_url: item.video.video_url || '',
+        thumbnail_url: item.video.thumbnail_url,
+        duration_seconds: item.video.duration_seconds,
+        category: item.video.category,
+        last_position_seconds: item.last_position_seconds,
+        is_completed: item.is_completed,
+        updated_at: item.updated_at
+      }));
 
       // Fetch quiz attempts
       const quizRes = await api.get(`/profiles/${profileId}/quiz-attempts`);
       const quizAttempts = quizRes.data || [];
 
-      // Calculate stats
-      const completedVideos = watchHistory.filter((h: any) => h.is_completed).length;
+      // Calculate stats using recentVideos (which contains ALL history)
+      const completedVideos = recentVideos.filter((h: any) => h.is_completed).length;
       const correctAnswers = quizAttempts.filter((q: any) => q.is_correct).length;
       const averageScore = quizAttempts.length > 0 ? (correctAnswers / quizAttempts.length) * 100 : 0;
 
       // Get last activity
-      const lastActivity = watchHistory.length > 0 
-        ? new Date(watchHistory[0].updated_at).toLocaleDateString('id-ID', {
+      const lastActivity = recentVideos.length > 0 
+        ? new Date(recentVideos[0].updated_at).toLocaleDateString('id-ID', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
@@ -74,16 +100,16 @@ export const reportService = {
         : '-';
 
       return {
-        total_watched: watchHistory.length,
+        total_watched: recentVideos.length,
         completed_videos: completedVideos,
         quiz_attempts: quizAttempts.length,
         correct_answers: correctAnswers,
         average_score: Math.round(averageScore),
         last_activity: lastActivity,
         recent_videos: recentVideos,
-        continue_watching: watchHistory.filter((h: any) => !h.is_completed),
+        continue_watching: watchHistory, // Already filtered by backend
         quiz_history: quizAttempts,
-        watch_history: watchHistory,
+        watch_history: recentVideos, // Use recentVideos as full history
       };
     } catch (error) {
       console.error('Error fetching report:', error);

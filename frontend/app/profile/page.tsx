@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input, Card } from '@/components/ui';
 import { userProfileService } from '@/lib/user-profile';
-import { ArrowLeft, Save, X, Check } from 'lucide-react';
+import { profilesService, Profile } from '@/lib/profiles';
+import { ArrowLeft, Save, X, Check, BarChart2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface UserProfile {
@@ -20,6 +21,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [childrenProfiles, setChildrenProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +59,16 @@ export default function ProfilePage() {
         currentPassword: '',
         confirmPassword: '',
       });
+
+      // Load children profiles if parent
+      if (data.role === 'parent') {
+        try {
+          const children = await profilesService.getAll();
+          setChildrenProfiles(children);
+        } catch (err) {
+          console.error('Failed to load children profiles', err);
+        }
+      }
     } catch (err: any) {
       setError('Gagal memuat profil');
     } finally {
@@ -330,6 +342,40 @@ export default function ProfilePage() {
             </form>
           )}
         </Card>
+
+        {/* Children Reports Section */}
+        {!isEditMode && profile?.role === 'parent' && childrenProfiles.length > 0 && (
+          <Card className="p-6 sm:p-8 border-b-8 border-[#FFE0B2] shadow-xl bg-white">
+            <h3 className="text-xl font-black text-[#4A4A4A] mb-4 flex items-center gap-2">
+              <span>📊</span> Laporan Belajar Anak
+            </h3>
+            <div className="grid gap-4">
+              {childrenProfiles.map((child) => (
+                <div 
+                  key={child.id}
+                  className="flex items-center justify-between p-4 bg-[#FFF9F0] rounded-xl border-2 border-[#FFE0B2]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#FF7A00] rounded-full flex items-center justify-center text-white font-black text-lg shadow-sm">
+                      {child.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-black text-[#4A4A4A]">{child.name}</p>
+                      <p className="text-xs text-[#8B7355] font-bold">{child.age_group} Tahun</p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => router.push(`/report?name=${child.name}&id=${child.id}`)}
+                    className="bg-white hover:bg-[#FFF5E5] text-[#FF7A00] border-2 border-[#FF7A00] font-bold rounded-lg px-4 py-2 text-sm flex items-center gap-2 transition-colors"
+                  >
+                    <BarChart2 size={16} />
+                    Lihat Laporan
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Logout Button */}
         {!isEditMode && (

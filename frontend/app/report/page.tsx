@@ -1,11 +1,14 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Card } from '@/components/ui';
+import { LoadingPage } from '@/components/ui/Loading';
 import { ArrowLeft, Play, X } from 'lucide-react';
 import { Suspense, useState, useEffect } from 'react';
 import { reportService, ReportData } from '@/lib/report';
+import { getYouTubeThumbnail } from '@/lib/utils';
 
 function ReportContent() {
   const router = useRouter();
@@ -42,14 +45,7 @@ function ReportContent() {
   }, [profileId, user, router]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#FFF9F0] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">⏳</div>
-          <p className="text-[#8B7355] font-bold">Memuat laporan...</p>
-        </div>
-      </div>
-    );
+    return <LoadingPage text="Memuat laporan..." />;
   }
 
   if (!reportData) {
@@ -69,7 +65,7 @@ function ReportContent() {
 
   const handleContinueWatching = () => {
     if (selectedItem) {
-      router.push(`/watch/${selectedItem.id}`);
+      router.push(`/watch/${selectedItem.id}?profile=${profileId}&from=report&childName=${encodeURIComponent(childName)}`);
     }
   };
 
@@ -152,8 +148,18 @@ function ReportContent() {
                         className="flex items-center justify-between p-3 bg-white border-2 border-[#F5F5F5] rounded-xl transition-all group hover:border-[#FF7A00] cursor-pointer hover:shadow-md hover:-translate-y-0.5"
                       >
                         <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-[#FFF3E0] text-[#FF9800]">
-                            📺
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg bg-[#FFF3E0] text-[#FF9800] overflow-hidden relative">
+                            {item.thumbnail_url || getYouTubeThumbnail(item.video_url) ? (
+                              <Image
+                                src={item.thumbnail_url || getYouTubeThumbnail(item.video_url) || ''}
+                                alt={item.title}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              '📺'
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-[#4A4A4A] text-sm group-hover:text-[#FF7A00] transition-colors truncate">{item.title || 'Video'}</p>
@@ -225,8 +231,18 @@ function ReportContent() {
               </button>
               
               <div className="text-center">
-                <div className="w-20 h-20 bg-[#FFF5E5] rounded-full flex items-center justify-center text-4xl mx-auto mb-4 border-4 border-[#FFE0B2]">
-                  📺
+                <div className="w-20 h-20 bg-[#FFF5E5] rounded-full flex items-center justify-center text-4xl mx-auto mb-4 border-4 border-[#FFE0B2] overflow-hidden relative">
+                  {selectedItem.thumbnail_url || getYouTubeThumbnail(selectedItem.video_url) ? (
+                    <Image
+                      src={selectedItem.thumbnail_url || getYouTubeThumbnail(selectedItem.video_url) || ''}
+                      alt={selectedItem.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    '📺'
+                  )}
                 </div>
                 <h3 className="text-2xl font-black text-[#4A4A4A] mb-2">Lanjut Menonton?</h3>
                 <p className="text-[#8B7355] font-bold mb-6">

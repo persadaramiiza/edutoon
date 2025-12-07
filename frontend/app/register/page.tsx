@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { ArrowLeft, UserPlus, Check, X } from 'lucide-react';
+import { motion } from "framer-motion";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -81,7 +82,12 @@ export default function RegisterPage() {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 z-10 overflow-y-auto">
-        <div className="w-full max-w-lg bg-white rounded-[2rem] shadow-2xl border-4 border-[#FFE0B2] p-8 md:p-10 relative my-auto">
+        <motion.div 
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-lg bg-white rounded-[2rem] shadow-2xl border-4 border-[#FFE0B2] p-8 md:p-10 relative my-auto"
+        >
           
           <Link href="/" className="absolute top-6 left-6 text-[#8B7355] hover:text-[#FF7A00] transition-colors">
             <ArrowLeft size={24} strokeWidth={3} />
@@ -93,22 +99,32 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 font-bold text-sm flex items-center gap-2">
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-r-xl mb-6 font-bold text-sm flex items-center gap-2"
+            >
               <X size={18} /> {error}
-            </div>
+            </motion.div>
           )}
 
           {success && (
-            <div className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-r-xl mb-6 font-bold text-sm flex items-center gap-2">
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 rounded-r-xl mb-6 font-bold text-sm flex items-center gap-2"
+            >
               <Check size={18} /> {success}
-            </div>
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* Role Selection */}
             <div className="grid grid-cols-2 gap-4 mb-6">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => setRole('parent')}
                 className={`p-3 rounded-xl border-2 font-black text-sm md:text-base transition-all ${
@@ -118,8 +134,10 @@ export default function RegisterPage() {
                 }`}
               >
                 👨‍👩‍👧‍👦 I'm a Parent
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={() => setRole('creator')}
                 className={`p-3 rounded-xl border-2 font-black text-sm md:text-base transition-all ${
@@ -129,7 +147,7 @@ export default function RegisterPage() {
                 }`}
               >
                 🎨 I'm a Creator
-              </button>
+              </motion.button>
             </div>
 
             <div className="space-y-2">
@@ -182,21 +200,23 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 text-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 border-[#CC6200] active:border-b-0 active:translate-y-1 mt-4"
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin">⏳</span> Creating Account...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <UserPlus size={20} strokeWidth={3} /> Create Account
-                </span>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-14 text-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 border-[#CC6200] active:border-b-0 active:translate-y-1 mt-4"
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⏳</span> Creating Account...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <UserPlus size={20} strokeWidth={3} /> Create Account
+                  </span>
+                )}
+              </Button>
+            </motion.div>
           </form>
 
           <div className="mt-8 text-center">
@@ -207,7 +227,7 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

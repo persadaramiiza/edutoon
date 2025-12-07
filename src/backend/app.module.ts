@@ -48,7 +48,7 @@ import { HealthModule } from './health/health.module';
         database: config.get('DB_NAME'),
         entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt, WatchHistory],
         synchronize: process.env.NODE_ENV !== 'production',
-        logging: process.env.NODE_ENV === 'development',
+        logging: false,
       }),
     }),
     AuthModule,

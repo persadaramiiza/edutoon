@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button, Input } from '@/components/ui';
 import { ArrowLeft, LogIn } from 'lucide-react';
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -63,7 +64,12 @@ export default function LoginPage() {
 
       {/* Right Side - Form */}
       <div className="flex-1 flex items-center justify-center p-6 md:p-12 z-10">
-        <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl border-4 border-[#FFE0B2] p-8 md:p-10 relative">
+        <motion.div 
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl border-4 border-[#FFE0B2] p-8 md:p-10 relative"
+        >
           
           <Link href="/" className="absolute top-6 left-6 text-[#8B7355] hover:text-[#FF7A00] transition-colors">
             <ArrowLeft size={24} strokeWidth={3} />
@@ -75,9 +81,13 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="bg-[#FFF5E5] border-l-4 border-[#D94D2B] text-[#D94D2B] p-4 rounded-r-xl mb-6 font-bold text-sm animate-in slide-in-from-top-2">
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="bg-[#FFF5E5] border-l-4 border-[#D94D2B] text-[#D94D2B] p-4 rounded-r-xl mb-6 font-bold text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -110,21 +120,23 @@ export default function LoginPage() {
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 text-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 border-[#CC6200] active:border-b-0 active:translate-y-1"
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin">⏳</span> Loading...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <LogIn size={20} strokeWidth={3} /> Login Now
-                </span>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-14 text-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all border-b-4 border-[#CC6200] active:border-b-0 active:translate-y-1"
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">⏳</span> Loading...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <LogIn size={20} strokeWidth={3} /> Login Now
+                  </span>
+                )}
+              </Button>
+            </motion.div>
           </form>
 
           <div className="mt-8 text-center">
@@ -135,7 +147,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

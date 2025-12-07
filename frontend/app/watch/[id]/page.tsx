@@ -104,25 +104,29 @@ function WatchPage() {
       }
 
       console.log('📥 Loading video:', videoId);
-      const data = await videosService.getById(videoId);
-      console.log('✅ Video loaded:', data.title, 'Platform:', data.platform);
-      setVideo(data);
+      
+      // Fetch video and progress in parallel
+      const [videoData, progressData] = await Promise.all([
+        videosService.getById(videoId),
+        profileId > 0 ? videosService.getProgress(videoId, profileId).catch(err => {
+          console.warn('⚠️ Failed to load progress:', err);
+          return null;
+        }) : Promise.resolve(null)
+      ]);
+
+      console.log('✅ Video loaded:', videoData.title, 'Platform:', videoData.platform);
+      
+      if (progressData && progressData.last_position_seconds > 0) {
+        setVideoProgress(progressData);
+        console.log(`⏱️ Previous progress: ${progressData.last_position_seconds}s`);
+      }
+
+      // Set video AFTER progress is set to ensure player init sees the progress
+      setVideo(videoData);
 
       videosService.incrementView(videoId).catch(err => {
         console.warn('⚠️ Failed to increment view:', err);
       });
-
-      if (profileId > 0) {
-        try {
-          const progress = await videosService.getProgress(videoId, profileId);
-          if (progress && progress.last_position_seconds > 0) {
-            setVideoProgress(progress);
-            console.log(`⏱️ Previous progress: ${progress.last_position_seconds}s`);
-          }
-        } catch (err) {
-          console.warn('⚠️ Failed to load progress:', err);
-        }
-      }
     } catch (err: any) {
       console.error('❌ Error loading video:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load video');
@@ -210,32 +214,32 @@ function WatchPage() {
     }
   }, [video, saveProgress]);
 
-  // ==================== QUIZ CHECK LOGIC ====================
+  // ==================== QUIZ CHECK LOGIC & PROGRESS SAVER ====================
   const startQuizCheck = useCallback(() => {
     if (checkIntervalRef.current) return;
-    if (quizzes.length === 0) {
-      console.log('ℹ️ No quizzes available');
-      return;
-    }
-
+    
     // ✅ Skip quiz for creator
-    if (user?.role === 'creator' || user?.role === 'admin') {
-      console.log('ℹ️ Creator mode: Quiz disabled');
-      return;
-    }
+    const isCreator = user?.role === 'creator' || user?.role === 'admin';
 
-    console.log('🎯 Starting quiz check');
+    console.log('🎯 Starting quiz check & progress saver');
     checkIntervalRef.current = setInterval(() => {
       if (!playerRef.current?.getCurrentTime) return;
 
       const currentTime = Math.floor(playerRef.current.getCurrentTime());
+      
+      // Save progress every 5 seconds
+      if (currentTime % 5 === 0) {
+        saveProgress(currentTime);
+      }
+
+      // If creator, skip quiz logic
+      if (isCreator) return;
+
+      if (quizzes.length === 0) return;
 
       // Find all quizzes that match this exact second
       const candidates = quizzes.filter((q) => q.timestamp_seconds === currentTime);
       if (candidates.length === 0) return;
-
-      // Skip for creator/admin
-      if (user?.role === 'creator' || user?.role === 'admin') return;
 
       // Choose a quiz to show: prefer not-yet-attempted ones
       const notAttempted = candidates.filter((q) => !completedQuizIds.has(q.id));
@@ -269,7 +273,7 @@ function WatchPage() {
         stopQuizCheck();
       }
     }, 1000);
-  }, [quizzes, completedQuizIds, profileId, user?.role]);
+  }, [quizzes, completedQuizIds, profileId, user?.role, saveProgress]);
 
   const stopQuizCheck = useCallback(() => {
     if (checkIntervalRef.current) {
@@ -407,9 +411,17 @@ function WatchPage() {
 
     return () => {
       console.log('🧹 Cleanup');
+      if (playerRef.current && playerRef.current.getCurrentTime) {
+        try {
+          const currentTime = playerRef.current.getCurrentTime();
+          saveProgress(currentTime);
+        } catch (err) {
+          console.warn('⚠️ Failed to save progress on cleanup:', err);
+        }
+      }
       stopQuizCheck();
     };
-  }, [isMounted, video, videoProgress, getYouTubeVideoId, startQuizCheck, stopQuizCheck, handleVideoEnd]);
+  }, [isMounted, video, videoProgress, getYouTubeVideoId, startQuizCheck, stopQuizCheck, handleVideoEnd, saveProgress]);
 
   // ==================== SUBMIT QUIZ ====================
   const handleQuizSubmit = async (selectedOptionId: number) => {
@@ -501,6 +513,15 @@ function WatchPage() {
     return null;
   }
 
+  // ==================== NAVIGATION ====================
+  const handleBack = () => {
+    if (profileId) {
+      router.push(`/dashboard/${profileId}`);
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
   // ==================== RENDER ====================
   if (authLoading || loadingVideo) {
     return (
@@ -522,7 +543,7 @@ function WatchPage() {
           <div className="text-8xl mb-6">⚠️</div>
           <h2 className="text-3xl font-black text-[#4A4A4A] mb-2">Error</h2>
           <p className="text-[#8B7355] mb-6 font-bold max-w-md">{error}</p>
-          <Button onClick={() => router.back()} className="bg-[#FF7A00] text-white font-black">
+          <Button onClick={handleBack} className="bg-[#FF7A00] text-white font-black">
             Go Back
           </Button>
         </div>
@@ -538,7 +559,7 @@ function WatchPage() {
           <h2 className="text-3xl font-black text-[#4A4A4A] mb-2">Video Not Found</h2>
           <p className="text-[#8B7355] font-bold mb-6">Oops! Video tidak ditemukan.</p>
           <Button
-            onClick={() => router.back()}
+            onClick={handleBack}
             className="bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-full px-8 py-6 text-lg font-black shadow-lg"
           >
             <ArrowLeft className="mr-2 h-6 w-6" />
@@ -562,7 +583,7 @@ function WatchPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.back()}
+              onClick={handleBack}
               className="text-[#8B7355] hover:text-[#FF7A00] hover:bg-[#FFF5E5] rounded-full font-bold"
             >
               <ArrowLeft className="mr-2 h-5 w-5" />

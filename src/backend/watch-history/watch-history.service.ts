@@ -62,11 +62,8 @@ export class WatchHistoryService {
             // jangan turunin posisi kalau user rewind – bisa pilih:
             // a) selalu update, atau
             // b) simpan progress maksimum
-            // Di sini kita pakai maksimum:
-            record.last_position_seconds = Math.max(
-                record.last_position_seconds,
-                timestampSeconds,
-            );
+            // Di sini kita pakai selalu update agar user bisa melanjutkan dari posisi terakhir ditonton:
+            record.last_position_seconds = timestampSeconds;
 
             // sekali completed, jangan dibikin false lagi
             record.is_completed = record.is_completed || autoCompleted;
