@@ -5,10 +5,11 @@ import { QuizzesController } from './quizzes.controller';
 import { Quiz } from './quiz.entity';
 import { QuizOption } from './quiz-option.entity';
 import { QuizAttempt } from './quiz-attempt.entity';
+import { Video } from '../videos/video.entity';
 import { ProfilesModule } from '../profiles/profiles.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Quiz, QuizOption, QuizAttempt]), ProfilesModule],
+  imports: [TypeOrmModule.forFeature([Quiz, QuizOption, QuizAttempt, Video]), ProfilesModule],
   providers: [QuizzesService],
   controllers: [QuizzesController],
   exports: [QuizzesService],

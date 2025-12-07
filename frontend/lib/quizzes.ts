@@ -71,7 +71,7 @@ export const quizzesService = {
   },
 
   // Check if quiz already attempted
-  async checkAttempt(quizId: number, profileId: number): Promise<QuizAttempt | null> {
+  async checkAttempt(quizId: number, profileId: number): Promise<any | null> {
     console.log('🔍 Checking quiz attempt:', { quizId, profileId });
     try {
       const response = await api.get(`/quizzes/${quizId}/attempt/${profileId}`);

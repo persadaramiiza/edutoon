@@ -164,11 +164,15 @@ function WatchPage() {
         return quiz && quiz.video_id === videoId;
       });
 
-      const completedIds = new Set(videoAttempts.map(a => a.quiz_id));
-      const correctAnswers = videoAttempts.filter(a => a.is_correct).length;
+      // Only consider a quiz "completed" if the profile has a correct attempt for it.
+      const correctAttemptIds = new Set(
+        videoAttempts.filter((a) => a.is_correct).map((a) => a.quiz_id)
+      );
 
-      console.log('✅ Found', completedIds.size, 'completed quizzes,', correctAnswers, 'correct');
-      setCompletedQuizIds(completedIds);
+      const correctAnswers = videoAttempts.filter((a) => a.is_correct).length;
+
+      console.log('✅ Found', correctAttemptIds.size, 'correctly answered quizzes,', correctAnswers, 'correct attempts');
+      setCompletedQuizIds(correctAttemptIds);
       setCorrectCount(correctAnswers);
     } catch (err) {
       console.error('❌ Error loading completed quizzes:', err);
@@ -225,14 +229,43 @@ function WatchPage() {
       if (!playerRef.current?.getCurrentTime) return;
 
       const currentTime = Math.floor(playerRef.current.getCurrentTime());
-      const quizToShow = quizzes.find(
-        (q) => q.timestamp_seconds === currentTime && !completedQuizIds.has(q.id)
-      );
 
-      if (quizToShow && profileId > 0) {
-        console.log('🎯 Quiz triggered at', currentTime, 'seconds');
+      // Find all quizzes that match this exact second
+      const candidates = quizzes.filter((q) => q.timestamp_seconds === currentTime);
+      if (candidates.length === 0) return;
+
+      // Skip for creator/admin
+      if (user?.role === 'creator' || user?.role === 'admin') return;
+
+      // Choose a quiz to show: prefer not-yet-attempted ones
+      const notAttempted = candidates.filter((q) => !completedQuizIds.has(q.id));
+      let chosen: Quiz | null = null;
+
+      if (notAttempted.length > 0) {
+        const idx = Math.floor(Math.random() * notAttempted.length);
+        chosen = notAttempted[idx];
+      } else {
+        // all attempted — pick random among candidates
+        const idx = Math.floor(Math.random() * candidates.length);
+        chosen = candidates[idx];
+      }
+
+      if (chosen && profileId > 0) {
+        console.log('🎯 Quiz triggered at', currentTime, 'seconds — selected quiz', chosen.id);
         playerRef.current.pauseVideo();
-        setCurrentQuiz(quizToShow);
+
+        // Sanitize options: remove is_correct before sending to UI
+        const sanitized: Quiz = {
+          ...chosen,
+          options: chosen.options?.map((o) => ({
+            id: o.id,
+            option_text: o.option_text,
+            is_correct: false, // hide correctness on client
+            quizId: o.quizId,
+          })) || [],
+        };
+
+        setCurrentQuiz(sanitized);
         stopQuizCheck();
       }
     }, 1000);
@@ -402,40 +435,31 @@ function WatchPage() {
         profileId: profileId,
         selectedOptionId: selectedOptionId,
       });
-      
+
       console.log('✅ Quiz submitted successfully:', response.data);
 
-      if (response.data.already_answered) {
-        console.log('⚠️ Quiz was already answered');
-        alert('Quiz ini sudah pernah dijawab sebelumnya! 📝');
-        
-        setCompletedQuizIds(prev => new Set([...prev, currentQuiz.id]));
-        setCurrentQuiz(null);
-        
-        if (playerRef.current) {
-          setTimeout(() => {
-            playerRef.current?.playVideo();
-            startQuizCheck();
-          }, 300);
-        }
-        return;
-      }
-      
-      if (response.data.is_correct) {
-        setCorrectCount(prev => prev + 1);
+      // update local state about attempts and score, but DO NOT close/resume here
+      const points = Number(response.data.points_earned || 0);
+      const isCorrect = !!response.data.is_correct;
+
+      if (points > 0) {
+        // points are multiples of 10; increase correctCount accordingly
+        setCorrectCount((prev) => prev + points / 10);
       }
 
-      setCompletedQuizIds(prev => new Set([...prev, currentQuiz.id]));
-      setCurrentQuiz(null);
-      
-      if (playerRef.current) {
-        setTimeout(() => {
-          playerRef.current?.playVideo();
-          startQuizCheck();
-        }, 300);
+      // Only mark quiz as completed (so it won't be prioritized next time)
+      // when there's a correct attempt for that quiz.
+      if (isCorrect) {
+        setCompletedQuizIds((prev) => new Set([...prev, currentQuiz.id]));
       }
+
+      // Return result to caller (QuizPopup) so it can control closing/resume
+      return response.data;
     } catch (error: any) {
-      console.error('❌ Error submitting quiz:', error.response?.data || error.message);
+      const errData = error?.response?.data;
+      const errMsg = errData && Object.keys(errData).length ? JSON.stringify(errData) : error.message || String(error);
+      console.error('❌ Error submitting quiz:', errMsg);
+      // bubble up so QuizPopup can show error
       throw error;
     }
   };
@@ -712,6 +736,7 @@ function WatchPage() {
           quiz={currentQuiz}
           onSubmit={handleQuizSubmit}
           onClose={handleQuizClose}
+          profileId={profileId}
         />
       )}
     </div>
