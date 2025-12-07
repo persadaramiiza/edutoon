@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { videosService, Video } from '@/lib/videos';
 import { quizzesService, Quiz, CreateQuizDto } from '@/lib/quizzes';
+import { LoadingPage } from '@/components/ui/Loading';
 
 export default function ManageQuizPage() {
   const router = useRouter();
@@ -152,11 +153,7 @@ export default function ManageQuizPage() {
   };
 
   if (isLoading || loadingVideo) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-xl text-gray-600">Loading...</div>
-      </div>
-    );
+    return <LoadingPage text="Memuat data quiz..." />;
   }
 
   if (!video) {

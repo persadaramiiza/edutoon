@@ -99,11 +99,10 @@ export class QuizzesController {
     }
   }
 
-  // Create new quiz (creator only) - REMOVED DUPLICATE
-  /* 
+  // Create new quiz (creator only)
   @Post('videos/:videoId/quizzes')
   @ApiOperation({ summary: 'Create a new quiz (creator only)' })
-  async createQuiz(
+  async createQuizForVideo(
     @Param('videoId', ParseIntPipe) videoId: number,
     @Body() dto: CreateQuizDto,
     @CurrentUser() user: JwtUser,
@@ -118,7 +117,6 @@ export class QuizzesController {
 
     return this.quizzesService.create(dto, user.userId);
   }
-  */
 
   // Get quiz attempts by profile - MOVED to ProfilesController
   /*

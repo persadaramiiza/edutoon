@@ -204,12 +204,12 @@ export default function CreatorDashboard() {
   };
 
   if (isLoading) {
-    // return <LoadingPage text="Memuat dashboard creator..." />;
+    return <LoadingPage text="Memuat dashboard creator..." />;
   }
 
-  // if (!user || (user.role !== 'creator' && user.role !== 'admin')) {
-  //   return null;
-  // }
+  if (!user || (user.role !== 'creator' && user.role !== 'admin')) {
+    return null;
+  }
 
   const totalViews = videos.reduce((acc, v) => acc + v.view_count, 0);
   const publishedCount = videos.filter(v => v.status === 'published').length;
@@ -330,144 +330,257 @@ export default function CreatorDashboard() {
             </Button>
           </div>
         ) : (
-          <div className="bg-white rounded-[2rem] border-4 border-[#FFE0B2] shadow-xl overflow-hidden animate-slide-up">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[#FFF5E5] border-b-4 border-[#FFE0B2]">
-                  <tr>
-                    <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
-                      Video
-                    </th>
-                    <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
-                      Views
-                    </th>
-                    <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
-                      Usia Target
-                    </th>
-                    <th className="px-6 py-6 text-right text-sm font-black text-[#8B7355] uppercase tracking-wider">
-                      Aksi
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y-2 divide-[#FFE0B2]">
-                  {videos.map((video, index) => (
-                    <tr 
-                      key={video.id} 
-                      className="hover:bg-[#FFF9F0] transition-colors animate-slide-up group"
-                      style={{ animationDelay: `${index * 50}ms` }}
+          <>
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden space-y-4 animate-slide-up">
+              {videos.map((video, index) => (
+                <div 
+                  key={video.id} 
+                  className="bg-white rounded-2xl p-4 border-4 border-[#FFE0B2] shadow-lg"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex gap-3 mb-4">
+                    <div className="w-24 h-16 bg-[#FFF5E5] rounded-xl overflow-hidden flex-shrink-0 shadow-md border-2 border-[#FFE0B2]">
+                      {video.thumbnail_url ? (
+                        <img
+                          src={video.thumbnail_url}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-2xl">
+                          🎬
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-black text-[#4A4A4A] truncate mb-1">{video.title}</div>
+                      <div className="text-xs font-bold text-[#8B7355] mb-2">{video.category || 'Tanpa kategori'}</div>
+                      <span className="inline-flex items-center gap-1 bg-[#E3F2FD] text-[#1565C0] px-2.5 py-1 rounded-lg text-[10px] font-black border border-[#BBDEFB] whitespace-nowrap">
+                        {video.min_age}-{video.max_age || '18'} tahun
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-[#FFE0B2]">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${
+                        video.status === 'published'
+                          ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#A5D6A7]'
+                          : video.status === 'draft'
+                          ? 'bg-[#FFF8E1] text-[#F57F17] border-[#FFE082]'
+                          : 'bg-gray-100 text-gray-700 border-gray-300'
+                      }`}
                     >
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-24 h-16 bg-[#FFF5E5] rounded-xl overflow-hidden flex-shrink-0 shadow-md border-2 border-[#FFE0B2] group-hover:border-[#FF7A00] transition-colors">
-                            {video.thumbnail_url ? (
-                              <img
-                                src={video.thumbnail_url}
-                                alt={video.title}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-2xl">
-                                🎬
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-black text-lg text-[#4A4A4A] truncate max-w-xs group-hover:text-[#FF7A00] transition-colors">{video.title}</div>
-                            <div className="text-sm font-bold text-[#8B7355] truncate max-w-xs">{video.category || 'Tanpa kategori'}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-6">
-                        <span
-                          className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm border-2 ${
-                            video.status === 'published'
-                              ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#A5D6A7]'
-                              : video.status === 'draft'
-                              ? 'bg-[#FFF8E1] text-[#F57F17] border-[#FFE082]'
-                              : 'bg-gray-100 text-gray-700 border-gray-300'
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${
-                            video.status === 'published' ? 'bg-[#2E7D32]' : 
-                            video.status === 'draft' ? 'bg-[#F57F17]' : 'bg-gray-500'
-                          }`}></span>
-                          {video.status === 'published' ? 'Published' : video.status === 'draft' ? 'Draft' : video.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-2 text-[#8B7355] font-bold">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          {video.view_count.toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-6">
-                        <span className="bg-[#E3F2FD] text-[#1565C0] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#BBDEFB]">
-                          {video.min_age}-{video.max_age || '18'} tahun
-                        </span>
-                      </td>
-                      <td className="px-6 py-6">
-                        <div className="flex justify-end gap-2 flex-wrap">
-                          <button
-                            onClick={() => router.push(`/creator/video/${video.id}/quiz`)}
-                            className="p-2.5 bg-[#F3E5F5] text-[#7B1FA2] hover:bg-[#E1BEE7] rounded-xl transition-colors border-2 border-[#E1BEE7] hover:border-[#CE93D8]"
-                            title="Kelola Quiz"
-                          >
-                            🎯
-                          </button>
-                          {video.status === 'draft' && (
-                            <button
-                              onClick={() => handlePublish(video.id)}
-                              className="p-2.5 bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#C8E6C9] rounded-xl transition-colors border-2 border-[#C8E6C9] hover:border-[#A5D6A7]"
-                              title="Publish"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </button>
-                          )}
-                          {video.status === 'published' && (
-                            <button
-                              onClick={() => handleArchive(video.id)}
-                              className="p-2.5 bg-[#FFF8E1] text-[#F57F17] hover:bg-[#FFECB3] rounded-xl transition-colors border-2 border-[#FFECB3] hover:border-[#FFE082]"
-                              title="Archive"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleEdit(video)}
-                            className="p-2.5 bg-[#E3F2FD] text-[#1565C0] hover:bg-[#BBDEFB] rounded-xl transition-colors border-2 border-[#BBDEFB] hover:border-[#90CAF9]"
-                            title="Edit"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(video.id)}
-                            className="p-2.5 bg-[#FFEBEE] text-[#C62828] hover:bg-[#FFCDD2] rounded-xl transition-colors border-2 border-[#FFCDD2] hover:border-[#EF9A9A]"
-                            title="Hapus"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        video.status === 'published' ? 'bg-[#2E7D32]' : 
+                        video.status === 'draft' ? 'bg-[#F57F17]' : 'bg-gray-500'
+                      }`}></span>
+                      {video.status === 'published' ? 'Published' : video.status === 'draft' ? 'Draft' : video.status}
+                    </span>
+                    
+                    <div className="flex items-center gap-1.5 text-[#8B7355] font-bold text-xs">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      {video.view_count.toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => router.push(`/creator/video/${video.id}/quiz`)}
+                      className="p-2 bg-[#F3E5F5] text-[#7B1FA2] hover:bg-[#E1BEE7] rounded-xl transition-colors border-2 border-[#E1BEE7]"
+                      title="Kelola Quiz"
+                    >
+                      🎯
+                    </button>
+                    {video.status === 'draft' && (
+                      <button
+                        onClick={() => handlePublish(video.id)}
+                        className="p-2 bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#C8E6C9] rounded-xl transition-colors border-2 border-[#C8E6C9]"
+                        title="Publish"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                    )}
+                    {video.status === 'published' && (
+                      <button
+                        onClick={() => handleArchive(video.id)}
+                        className="p-2 bg-[#FFF8E1] text-[#F57F17] hover:bg-[#FFECB3] rounded-xl transition-colors border-2 border-[#FFECB3]"
+                        title="Archive"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEdit(video)}
+                      className="p-2 bg-[#E3F2FD] text-[#1565C0] hover:bg-[#BBDEFB] rounded-xl transition-colors border-2 border-[#BBDEFB]"
+                      title="Edit"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(video.id)}
+                      className="p-2 bg-[#FFEBEE] text-[#C62828] hover:bg-[#FFCDD2] rounded-xl transition-colors border-2 border-[#FFCDD2]"
+                      title="Hapus"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block bg-white rounded-[2rem] border-4 border-[#FFE0B2] shadow-xl overflow-hidden animate-slide-up">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[#FFF5E5] border-b-4 border-[#FFE0B2]">
+                    <tr>
+                      <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
+                        Video
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
+                        Views
+                      </th>
+                      <th className="px-6 py-6 text-left text-sm font-black text-[#8B7355] uppercase tracking-wider">
+                        Usia Target
+                      </th>
+                      <th className="px-6 py-6 text-right text-sm font-black text-[#8B7355] uppercase tracking-wider">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y-2 divide-[#FFE0B2]">
+                    {videos.map((video, index) => (
+                      <tr 
+                        key={video.id} 
+                        className="hover:bg-[#FFF9F0] transition-colors animate-slide-up group"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-24 h-16 bg-[#FFF5E5] rounded-xl overflow-hidden flex-shrink-0 shadow-md border-2 border-[#FFE0B2] group-hover:border-[#FF7A00] transition-colors">
+                              {video.thumbnail_url ? (
+                                <img
+                                  src={video.thumbnail_url}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-2xl">
+                                  🎬
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-black text-lg text-[#4A4A4A] truncate max-w-xs group-hover:text-[#FF7A00] transition-colors">{video.title}</div>
+                              <div className="text-sm font-bold text-[#8B7355] truncate max-w-xs">{video.category || 'Tanpa kategori'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <span
+                            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-sm border-2 ${
+                              video.status === 'published'
+                                ? 'bg-[#E8F5E9] text-[#2E7D32] border-[#A5D6A7]'
+                                : video.status === 'draft'
+                                ? 'bg-[#FFF8E1] text-[#F57F17] border-[#FFE082]'
+                                : 'bg-gray-100 text-gray-700 border-gray-300'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${
+                              video.status === 'published' ? 'bg-[#2E7D32]' : 
+                              video.status === 'draft' ? 'bg-[#F57F17]' : 'bg-gray-500'
+                            }`}></span>
+                            {video.status === 'published' ? 'Published' : video.status === 'draft' ? 'Draft' : video.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex items-center gap-2 text-[#8B7355] font-bold">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            {video.view_count.toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <span className="inline-flex items-center gap-1 bg-[#E3F2FD] text-[#1565C0] px-3 py-1.5 rounded-full text-xs font-black border-2 border-[#BBDEFB] whitespace-nowrap">
+                            {video.min_age}-{video.max_age || '18'} tahun
+                          </span>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="flex justify-end gap-2 flex-wrap">
+                            <button
+                              onClick={() => router.push(`/creator/video/${video.id}/quiz`)}
+                              className="p-2.5 bg-[#F3E5F5] text-[#7B1FA2] hover:bg-[#E1BEE7] rounded-xl transition-colors border-2 border-[#E1BEE7] hover:border-[#CE93D8]"
+                              title="Kelola Quiz"
+                            >
+                              🎯
+                            </button>
+                            {video.status === 'draft' && (
+                              <button
+                                onClick={() => handlePublish(video.id)}
+                                className="p-2.5 bg-[#E8F5E9] text-[#2E7D32] hover:bg-[#C8E6C9] rounded-xl transition-colors border-2 border-[#C8E6C9] hover:border-[#A5D6A7]"
+                                title="Publish"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                            )}
+                            {video.status === 'published' && (
+                              <button
+                                onClick={() => handleArchive(video.id)}
+                                className="p-2.5 bg-[#FFF8E1] text-[#F57F17] hover:bg-[#FFECB3] rounded-xl transition-colors border-2 border-[#FFECB3] hover:border-[#FFE082]"
+                                title="Archive"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                                </svg>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEdit(video)}
+                              className="p-2.5 bg-[#E3F2FD] text-[#1565C0] hover:bg-[#BBDEFB] rounded-xl transition-colors border-2 border-[#BBDEFB] hover:border-[#90CAF9]"
+                              title="Edit"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(video.id)}
+                              className="p-2.5 bg-[#FFEBEE] text-[#C62828] hover:bg-[#FFCDD2] rounded-xl transition-colors border-2 border-[#FFCDD2] hover:border-[#EF9A9A]"
+                              title="Hapus"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </main>
 
