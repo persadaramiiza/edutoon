@@ -25,6 +25,25 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 export class QuizzesController {
   constructor(private readonly quizzesService: QuizzesService) {}
 
+  // Create new quiz (creator only) - MOVED TO TOP to avoid route conflict
+  @Post('videos/:videoId/quizzes')
+  @ApiOperation({ summary: 'Create a new quiz (creator only)' })
+  async createQuiz(
+    @Param('videoId', ParseIntPipe) videoId: number,
+    @Body() dto: CreateQuizDto,
+    @CurrentUser() user: JwtUser,
+  ) {
+    console.log('📤 Create quiz request:', dto);
+    if (user.role !== 'creator' && user.role !== 'admin') {
+      throw new ForbiddenException('Hanya creator yang dapat menambahkan quiz');
+    }
+    
+    // Ensure videoId in DTO matches URL param
+    dto.videoId = videoId;
+
+    return this.quizzesService.create(dto, user.userId);
+  }
+
   // Get quizzes untuk video tertentu
   @Get('videos/:videoId/quizzes')
   @ApiOperation({ summary: 'Get all quizzes for a video' })
@@ -86,7 +105,8 @@ export class QuizzesController {
     }
   }
 
-  // Create new quiz (creator only)
+  // Create new quiz (creator only) - REMOVED DUPLICATE
+  /* 
   @Post('videos/:videoId/quizzes')
   @ApiOperation({ summary: 'Create a new quiz (creator only)' })
   async createQuiz(
@@ -104,6 +124,7 @@ export class QuizzesController {
 
     return this.quizzesService.create(dto, user.userId);
   }
+  */
 
   // Get quiz attempts by profile
   @Get('profiles/:profileId/quiz-attempts')
