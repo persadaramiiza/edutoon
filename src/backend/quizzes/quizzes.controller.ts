@@ -19,14 +19,14 @@ import { SubmitQuizDto } from './dto/submit-quiz.dto';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 
 @ApiTags('Quizzes')
-@Controller('api')
+@Controller('api/quizzes')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class QuizzesController {
   constructor(private readonly quizzesService: QuizzesService) {}
 
   // Create new quiz
-  @Post('quizzes')
+  @Post()
   @ApiOperation({ summary: 'Create a new quiz' })
   async createQuiz(
     @Body() dto: CreateQuizDto,
@@ -48,7 +48,7 @@ export class QuizzesController {
   // GET /api/videos/:videoId/quizzes/random/:profileId is handled by VideosController
 
   // Get quiz by ID
-  @Get('quizzes/:id')
+  @Get(':id')
   @ApiOperation({ summary: 'Get quiz by ID' })
   async getQuiz(@Param('id', ParseIntPipe) id: number) {
     console.log(`📥 Fetching quiz ${id}`);
@@ -56,7 +56,7 @@ export class QuizzesController {
   }
 
   // Submit quiz answer - CRITICAL ENDPOINT
-  @Post('quiz/submit')
+  @Post('submit')
   @ApiOperation({ summary: 'Submit quiz answer and get result' })
   async submitQuizAnswer(
     @Body() dto: SubmitQuizDto,
@@ -105,7 +105,8 @@ export class QuizzesController {
   }
   */
 
-  // Get quiz attempts by profile
+  // Get quiz attempts by profile - MOVED to ProfilesController
+  /*
   @Get('profiles/:profileId/quiz-attempts')
   @ApiOperation({ summary: 'Get all quiz attempts by profile' })
   async getAttemptsByProfile(
@@ -115,9 +116,10 @@ export class QuizzesController {
     console.log(`📥 Fetching quiz attempts for profile ${profileId}`);
     return this.quizzesService.getAttemptsByProfile(profileId, user.userId);
   }
+  */
 
   // Check if quiz already attempted
-  @Get('quizzes/:quizId/attempt/:profileId')
+  @Get(':quizId/attempt/:profileId')
   @ApiOperation({ summary: 'Check if quiz was already attempted by profile' })
   async checkAttempt(
     @Param('quizId', ParseIntPipe) quizId: number,
@@ -129,7 +131,7 @@ export class QuizzesController {
   }
 
   // Provide a hint (an incorrect option id) or reveal correct option when requested
-  @Get('quizzes/:quizId/hint')
+  @Get(':quizId/hint')
   @ApiOperation({ summary: 'Get a hint for a quiz (incorrect option id) or reveal the correct option' })
   async getHint(
     @Param('quizId', ParseIntPipe) quizId: number,
