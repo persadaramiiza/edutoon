@@ -2,17 +2,17 @@ module.exports = {
   apps: [
     {
       name: 'edutoon-backend',
-      cwd: '/home/edutoon/edutoon',
-      script: 'dist/main.js',   // <== pakai hasil build, BUKAN src
+      cwd: '/www/wwwroot/edutoon',
+      script: 'dist/main.js',
       instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '500M',
       env: {
         NODE_ENV: 'production',
-        PORT: 3000,
-      },
-    },
-  ],
+        PORT: 3000
+      }
+    }
+  ]
 };
-
