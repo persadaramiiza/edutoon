@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { Video } from '../videos/video.entity';
 import { QuizOption } from './quiz-option.entity';
 
@@ -11,6 +11,7 @@ export class Quiz {
   videoId: number;
 
   @ManyToOne(() => Video, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'videoId' })
   video: Video;
 
   @Column()

@@ -24,8 +24,10 @@ import { QuizzesModule } from './quizzes/quizzes.module';
 
 import { WatchHistory } from './watch-history/watch-history.entity';
 import { WatchHistoryModule } from './watch-history/watch-history.module';
+import { VideoProgress } from './videos/video-progress.entity';
 
 import { HealthModule } from './health/health.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
@@ -46,9 +48,13 @@ import { HealthModule } from './health/health.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt, WatchHistory],
-        synchronize: process.env.NODE_ENV !== 'production',
+        entities: [User, Profile, Video, VideoProgress, Quiz, QuizOption, QuizAttempt, WatchHistory],
+        synchronize: false,
+        migrationsRun: false,
         logging: false,
+        ssl: config.get('DB_SSL') === 'true'
+          ? { rejectUnauthorized: config.get('DB_SSL_REJECT_UNAUTHORIZED') !== 'false' }
+          : false,
       }),
     }),
     AuthModule,
@@ -58,6 +64,7 @@ import { HealthModule } from './health/health.module';
     QuizzesModule,
     WatchHistoryModule,
     HealthModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [

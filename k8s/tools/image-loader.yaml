@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: edutoon-image-loader
+  namespace: edutoon-benchmark
+  labels:
+    app: edutoon-image-loader
+spec:
+  restartPolicy: Never
+  containers:
+    - name: loader
+      image: alpine:3.22
+      command:
+        - sh
+        - -ec
+        - apk add --no-cache containerd-ctr && touch /tmp/ready && sleep 3600
+      securityContext:
+        privileged: true
+      readinessProbe:
+        exec:
+          command: ["test", "-f", "/tmp/ready"]
+        periodSeconds: 2
+      resources:
+        requests:
+          cpu: 25m
+          memory: 32Mi
+        limits:
+          cpu: 250m
+          memory: 128Mi
+      volumeMounts:
+        - name: containerd-socket
+          mountPath: /run/containerd/containerd.sock
+  volumes:
+    - name: containerd-socket
+      hostPath:
+        path: /run/containerd/containerd.sock
+        type: Socket

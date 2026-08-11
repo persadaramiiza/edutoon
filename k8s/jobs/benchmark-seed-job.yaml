@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: edutoon-benchmark-seed
+  namespace: edutoon-benchmark
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: edutoon-benchmark-seed
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: edutoon-backend:local
+          imagePullPolicy: Never
+          command: ["node", "dist/database/seed-benchmark.js"]
+          envFrom:
+            - configMapRef:
+                name: edutoon-config
+            - secretRef:
+                name: edutoon-runtime
+            - secretRef:
+                name: edutoon-benchmark-account
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi

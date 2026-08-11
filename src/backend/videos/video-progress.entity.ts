@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn, Index, JoinColumn } from 'typeorm';
 import { Video } from './video.entity';
 
 @Entity('video_progress')
@@ -11,6 +11,7 @@ export class VideoProgress {
   video_id: number;
 
   @ManyToOne(() => Video, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'video_id' })
   video: Video;
 
   @Column()

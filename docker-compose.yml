@@ -1,16 +1,20 @@
-version: '3.8'
 services:
   db:
-    image: postgres:15
+    image: postgres:15.8-bookworm
     restart: always
     environment:
-      POSTGRES_USER: edutoon
-      POSTGRES_PASSWORD: edutoon_local_password
-      POSTGRES_DB: edutoon
+      POSTGRES_USER: ${DB_USER:-edutoon}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS must be supplied from the local environment}
+      POSTGRES_DB: ${DB_NAME:-edutoon_benchmark}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   postgres_data:

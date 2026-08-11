@@ -1,4 +1,6 @@
 # EduToon 🎓
+Dokumentasi benchmark Kubernetes lokal: [docs/local-benchmark.md](docs/local-benchmark.md).
+
   <strong>Platform Video Edukatif untuk Anak-Anak</strong>
 </p>
 
