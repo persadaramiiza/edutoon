@@ -1,0 +1,211 @@
+apiVersion: benchmark.gdplabs.io/v1alpha1
+kind: BenchmarkProject
+metadata:
+  id: edutoon
+  displayName: EduToon
+
+spec:
+  defaults:
+    environment: local-benchmark
+    loadTool: k6
+    branch: benchmark-local-k8s
+  cli:
+    allowedOverrides:
+      - environment
+      - loadTool
+      - branch
+  providers:
+    kubernetes:
+      enabled: true
+      capability: kubernetes
+    cloudBuild:
+      enabled: false
+      capability: google.cloudbuild
+    healthcheck:
+      enabled: true
+      capability: http.healthcheck
+    grafana:
+      enabled: true
+      capability: grafana.prometheus
+    awsRds:
+      enabled: false
+      capability: aws.rds
+    googleSheets:
+      enabled: false
+      capability: google.sheets
+  loadTools:
+    playwright:
+      enabled: false
+      disabledReason: EduToon local benchmark currently uses approved k6 scenarios only.
+      scenarioRoot: benchmark/playwright
+      entrypoint: benchmark/playwright/smoke.ts
+      resultFormat: playwright-summary-v1
+      requiredPaths:
+        - benchmark/playwright
+    k6:
+      enabled: true
+      scenarioRoot: benchmark/k6
+      entrypoint: benchmark/k6/common.js
+      resultFormat: k6-summary-v1
+      requiredPaths:
+        - benchmark/k6/common.js
+        - benchmark/k6/smoke.js
+        - benchmark/k6/baseline.js
+        - k8s/jobs/k6-smoke-job.yaml
+        - k8s/jobs/k6-baseline-job.yaml
+  components:
+    backend:
+      role: workload
+      kubernetes:
+        kind: Deployment
+        selector:
+          names: [edutoon-backend]
+      metrics:
+        enabled: true
+        key: backend
+        podPattern: edutoon-backend-.*
+        requests:
+          cpu: 100m
+          memory: 192Mi
+      scaling:
+        default:
+          mode: constant
+          replicas: 1
+    frontend:
+      role: workload
+      kubernetes:
+        kind: Deployment
+        selector:
+          names: [edutoon-frontend]
+      metrics:
+        enabled: false
+      scaling:
+        default:
+          mode: constant
+          replicas: 1
+    mariadb:
+      role: dependency
+      kubernetes:
+        kind: StatefulSet
+        selector:
+          names: [edutoon-mariadb]
+      metrics:
+        enabled: false
+      scaling:
+        default:
+          mode: constant
+          replicas: 1
+    prometheus:
+      role: dependency
+      kubernetes:
+        kind: Deployment
+        selector:
+          names: [edutoon-prometheus]
+      metrics:
+        enabled: false
+      scaling:
+        default:
+          mode: constant
+          replicas: 1
+    grafana:
+      role: dependency
+      kubernetes:
+        kind: Deployment
+        selector:
+          names: [edutoon-grafana]
+      metrics:
+        enabled: false
+      scaling:
+        default:
+          mode: constant
+          replicas: 1
+  scenarios:
+    smoke:
+      enabled: true
+      description: One-iteration read-only EduToon smoke journey.
+      toolScenario: smoke
+      allowedLoadTools: [k6]
+      components: [backend, frontend]
+      dependencies: [mariadb, prometheus, grafana]
+      concurrency:
+        minimum: 1
+        maximum: 1
+        configured: [1]
+      thresholds:
+        ttftP90Seconds: 1.5
+        successRatePercent: 100
+    baseline:
+      enabled: true
+      description: Bounded read-only EduToon baseline journey.
+      toolScenario: baseline
+      allowedLoadTools: [k6]
+      components: [backend, frontend]
+      dependencies: [mariadb, prometheus, grafana]
+      concurrency:
+        minimum: 1
+        maximum: 1
+        configured: [1]
+      thresholds:
+        ttftP90Seconds: 1.5
+        successRatePercent: 100
+  environments:
+    local-benchmark:
+      configured: true
+      description: Cost-free Docker Desktop Kubernetes benchmark environment.
+      mutationsAllowed: true
+      localOnly: true
+      cluster:
+        allowedContextPatterns: ['^docker-desktop$']
+        allowedClusterNames: [docker-desktop]
+        allowedApiServerHosts: [127.0.0.1]
+        namespace: edutoon-benchmark
+      loadTestUrl: http://edutoon-backend.edutoon-benchmark.svc.cluster.local:3000
+      kubernetesJob:
+        jobNameTemplate: edutoon-k6-{scenario}
+        manifestTemplate: k8s/jobs/k6-{scenario}-job.yaml
+        container: k6
+        timeoutSeconds: 180
+        pollIntervalSeconds: 2
+      database:
+        enabled: false
+      grafana:
+        enabled: true
+        baseUrl: http://localhost:3001
+        datasourceUid: prometheus
+        clusterLabel: docker-desktop
+        windowPaddingSeconds: 0
+        queries:
+          cpu: 'sum(rate(edutoon_process_cpu_seconds_total{cluster="{cluster}",namespace="{namespace}",pod=~"{podPattern}"}[1m]))'
+          memory: 'avg(edutoon_process_resident_memory_bytes{cluster="{cluster}",namespace="{namespace}",pod=~"{podPattern}"})'
+      googleSheets:
+        enabled: false
+      healthchecks:
+        - name: application
+          url: http://localhost:3333/api/health
+          retries: 3
+          intervalSeconds: 5
+  reporting:
+    googleSheets:
+      scenario:
+        titleTemplate: '{scenario}-week{isoWeek}'
+        commonHeaders:
+          - include in report
+          - date
+          - scenario
+          - cr
+          - success rate
+          - latency p90
+          - run key
+        headersByScenario: {}
+        idempotencyHeader: run key
+        checkboxHeader: include in report
+        conditionalFormats: []
+      database:
+        sql:
+          titleTemplate: rds-sql-week{isoWeek}
+          headers: [date, run key, top 3 sql by db load]
+          idempotencyHeader: run key
+        wait:
+          titleTemplate: rds-wait-week{isoWeek}
+          headers: [date, run key, top 3 wait events by db load]
+          idempotencyHeader: run key

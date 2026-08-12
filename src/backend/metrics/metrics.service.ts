@@ -13,7 +13,12 @@ export class MetricsService {
   readonly requestDuration: Histogram<'method' | 'route' | 'status_code'>;
 
   constructor() {
-    this.registry.setDefaultLabels({ service: 'edutoon-backend' });
+    this.registry.setDefaultLabels({
+      service: 'edutoon-backend',
+      cluster: process.env.CLUSTER_LABEL || 'unknown',
+      namespace: process.env.KUBERNETES_NAMESPACE || 'unknown',
+      pod: process.env.POD_NAME || 'unknown',
+    });
     collectDefaultMetrics({ register: this.registry, prefix: 'edutoon_' });
 
     this.requestCounter = new Counter({

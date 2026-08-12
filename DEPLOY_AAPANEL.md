@@ -3,15 +3,18 @@
 ## 🔧 Persiapan Server
 
 ### 1. Install aaPanel
+
 ```bash
 # Ubuntu/Debian
 wget -O install.sh http://www.aapanel.com/script/install-ubuntu_6.0_en.sh && bash install.sh
 ```
 
 ### 2. Install Software via aaPanel
+
 Buka aaPanel web interface, lalu install:
+
 - **Nginx** (versi terbaru)
-- **PostgreSQL** (versi 14+)
+- **MariaDB** (versi 10.6+)
 - **PM2 Manager** (dari App Store)
 - **Node.js Version Manager** (pilih Node.js 20.x atau 22.x)
 
@@ -20,9 +23,11 @@ Buka aaPanel web interface, lalu install:
 ## 📁 Upload Project
 
 ### 1. Upload via aaPanel File Manager
+
 Upload folder project ke `/www/wwwroot/edutoon`
 
 Atau via Git:
+
 ```bash
 cd /www/wwwroot
 git clone https://github.com/persadaramiiza/edutoon.git
@@ -32,16 +37,18 @@ git checkout deployment-test
 
 ---
 
-## 🗄️ Setup Database PostgreSQL
+## 🗄️ Setup Database MariaDB
 
 ### 1. Buat Database via aaPanel
-- Buka **Database** → **PostgreSQL**
+
+- Buka **Database** → **MariaDB**
 - Klik **Add Database**
 - Database name: `edutoon`
 - Username: `edutoon`
 - Password: (catat password Anda)
 
 ### 2. Setup Environment
+
 ```bash
 cd /www/wwwroot/edutoon
 
@@ -51,11 +58,12 @@ nano .env
 ```
 
 Edit `.env` sesuai database yang dibuat:
+
 ```env
 PORT=3000
 
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=3306
 DB_USER=edutoon
 DB_PASS=PASSWORD_DATABASE_ANDA
 DB_NAME=edutoon
@@ -69,6 +77,7 @@ JWT_EXPIRES_IN=7d
 ## 🔨 Build Project
 
 ### 1. Build Backend (NestJS)
+
 ```bash
 cd /www/wwwroot/edutoon
 
@@ -80,6 +89,7 @@ npm run build
 ```
 
 ### 2. Build Frontend (Next.js)
+
 ```bash
 cd /www/wwwroot/edutoon/frontend
 
@@ -88,16 +98,19 @@ nano .env.production
 ```
 
 Isi dengan domain/IP server Anda:
+
 ```env
 NEXT_PUBLIC_API_URL=http://YOUR_DOMAIN:3000/api
 ```
 
 Jika menggunakan domain dengan reverse proxy (recommended):
+
 ```env
 NEXT_PUBLIC_API_URL=https://api.yourdomain.com/api
 ```
 
 Lalu build:
+
 ```bash
 # Install dependencies
 npm install
@@ -111,6 +124,7 @@ npm run build
 ## 🚀 Jalankan dengan PM2
 
 ### 1. Start Aplikasi
+
 ```bash
 cd /www/wwwroot/edutoon
 
@@ -125,6 +139,7 @@ pm2 startup
 ```
 
 ### 2. Periksa Status
+
 ```bash
 pm2 status
 pm2 logs edutoon-backend
@@ -173,11 +188,13 @@ server {
 ```
 
 Untuk setup ini, update `frontend/.env.production`:
+
 ```env
 NEXT_PUBLIC_API_URL=/api
 ```
 
 Lalu rebuild frontend:
+
 ```bash
 cd /www/wwwroot/edutoon/frontend
 npm run build
@@ -187,6 +204,7 @@ pm2 restart edutoon-frontend
 ### Option B: Subdomain Terpisah
 
 **Backend**: api.yourdomain.com
+
 ```nginx
 server {
     listen 80;
@@ -205,6 +223,7 @@ server {
 ```
 
 **Frontend**: yourdomain.com atau app.yourdomain.com
+
 ```nginx
 server {
     listen 80;
@@ -227,6 +246,7 @@ server {
 ## 🔒 SSL Certificate (Optional tapi Recommended)
 
 Di aaPanel:
+
 1. Buka **Website** → klik domain Anda
 2. Tab **SSL** → **Let's Encrypt**
 3. Klik **Apply** untuk mendapatkan SSL gratis
@@ -236,6 +256,7 @@ Di aaPanel:
 ## ✅ Testing
 
 ### 1. Test Backend
+
 ```bash
 curl http://localhost:3000/api
 # atau
@@ -243,9 +264,11 @@ curl http://YOUR_DOMAIN/api
 ```
 
 ### 2. Test Frontend
+
 Buka browser: `http://YOUR_DOMAIN`
 
 ### 3. Test Database Connection
+
 ```bash
 pm2 logs edutoon-backend
 # Pastikan tidak ada error koneksi database
@@ -282,6 +305,7 @@ pm2 restart all
 ## 🐛 Troubleshooting
 
 ### Error: Port already in use
+
 ```bash
 pm2 stop all
 pm2 delete all
@@ -289,11 +313,13 @@ pm2 start ecosystem.config.js
 ```
 
 ### Error: Database connection refused
-- Pastikan PostgreSQL running di aaPanel
+
+- Pastikan MariaDB running di aaPanel
 - Cek username/password di `.env`
-- Cek PostgreSQL listen address di config
+- Cek MariaDB bind address di config
 
 ### Error: Module not found
+
 ```bash
 rm -rf node_modules
 npm install
@@ -301,6 +327,7 @@ npm run build
 ```
 
 ### View Logs
+
 ```bash
 pm2 logs
 pm2 logs edutoon-backend --lines 100
@@ -326,14 +353,14 @@ pm2 info edutoon-backend
 
 ## 🎯 Quick Commands Reference
 
-| Command | Keterangan |
-|---------|------------|
-| `pm2 start ecosystem.config.js` | Start semua app |
-| `pm2 stop all` | Stop semua app |
-| `pm2 restart all` | Restart semua app |
-| `pm2 logs` | Lihat logs |
-| `pm2 status` | Lihat status |
-| `pm2 monit` | Monitoring realtime |
+| Command                         | Keterangan          |
+| ------------------------------- | ------------------- |
+| `pm2 start ecosystem.config.js` | Start semua app     |
+| `pm2 stop all`                  | Stop semua app      |
+| `pm2 restart all`               | Restart semua app   |
+| `pm2 logs`                      | Lihat logs          |
+| `pm2 status`                    | Lihat status        |
+| `pm2 monit`                     | Monitoring realtime |
 
 ---
 
@@ -344,6 +371,7 @@ pm2 info edutoon-backend
 2. **Storage**: Pastikan ada cukup space untuk node_modules (~500MB)
 
 3. **Swap Memory**: Tambahkan swap jika RAM terbatas
+
 ```bash
 fallocate -l 2G /swapfile
 chmod 600 /swapfile

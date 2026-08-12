@@ -20,10 +20,14 @@ kubectl get secret edutoon-benchmark-account -n $Namespace | Out-Null
 Assert-NativeSuccess 'Benchmark account Secret check'
 kubectl apply -f (Join-Path $repo 'k8s\base\configmap.yaml')
 Assert-NativeSuccess 'ConfigMap apply'
-kubectl apply -f (Join-Path $repo 'k8s\base\postgres.yaml')
-Assert-NativeSuccess 'PostgreSQL apply'
-kubectl rollout status statefulset/edutoon-postgres -n $Namespace --timeout=180s
-Assert-NativeSuccess 'PostgreSQL rollout'
+kubectl delete statefulset edutoon-postgres -n $Namespace --ignore-not-found | Out-Null
+Assert-NativeSuccess 'Legacy PostgreSQL StatefulSet cleanup'
+kubectl delete service edutoon-postgres -n $Namespace --ignore-not-found | Out-Null
+Assert-NativeSuccess 'Legacy PostgreSQL Service cleanup'
+kubectl apply -f (Join-Path $repo 'k8s\base\mariadb.yaml')
+Assert-NativeSuccess 'MariaDB apply'
+kubectl rollout status statefulset/edutoon-mariadb -n $Namespace --timeout=180s
+Assert-NativeSuccess 'MariaDB rollout'
 
 kubectl delete job edutoon-migration -n $Namespace --ignore-not-found | Out-Null
 kubectl apply -f (Join-Path $repo 'k8s\jobs\migration-job.yaml')
@@ -43,8 +47,12 @@ Assert-NativeSuccess 'Benchmark seed Job logs'
 
 kubectl apply -f (Join-Path $repo 'k8s\base\backend.yaml')
 Assert-NativeSuccess 'Backend apply'
+kubectl rollout restart deployment/edutoon-backend -n $Namespace
+Assert-NativeSuccess 'Backend restart'
 kubectl apply -f (Join-Path $repo 'k8s\base\frontend.yaml')
 Assert-NativeSuccess 'Frontend apply'
+kubectl rollout restart deployment/edutoon-frontend -n $Namespace
+Assert-NativeSuccess 'Frontend restart'
 kubectl apply -k (Join-Path $repo 'k8s\observability')
 Assert-NativeSuccess 'Observability apply'
 

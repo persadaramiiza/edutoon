@@ -1,0 +1,32 @@
+apiVersion: benchmark.gdplabs.io/v1alpha1
+kind: BenchmarkMcpBindings
+metadata:
+  name: edutoon-local-desktop
+  description: MCP bindings for the local EduToon benchmark environment.
+
+spec:
+  providers:
+    kubernetes:
+      capability: kubernetes
+      adapter: kubernetes-mcp-v1
+      server: edutoon-kubernetes
+      tools:
+        configurationView: configuration_view
+        resourcesList: resources_list
+        resourcesGet: resources_get
+        resourcesScale: resources_scale
+        resourcesCreateOrUpdate: resources_create_or_update
+        podsLog: pods_log
+    healthcheck:
+      capability: http.healthcheck
+      adapter: http-health-mcp-v1
+      server: http-health
+      tools:
+        httpGet: get
+    grafana:
+      capability: grafana.prometheus
+      adapter: grafana-mcp-v1
+      server: edutoon-grafana
+      tools:
+        getDatasource: get_datasource
+        queryPrometheus: query_prometheus

@@ -34,27 +34,44 @@ import { MetricsModule } from './metrics/metrics.module';
     ConfigModule.forRoot({ isGlobal: true }),
 
     // Rate Limiting: 60 requests per minute per IP
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 60,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 60,
+      },
+    ]),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
+        type: 'mariadb',
         host: config.get('DB_HOST') || config.get('DB_Host'),
-        port: Number(config.get('DB_PORT')),
+        port: Number(config.get('DB_PORT') || 3306),
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile, Video, VideoProgress, Quiz, QuizOption, QuizAttempt, WatchHistory],
+        entities: [
+          User,
+          Profile,
+          Video,
+          VideoProgress,
+          Quiz,
+          QuizOption,
+          QuizAttempt,
+          WatchHistory,
+        ],
         synchronize: false,
         migrationsRun: false,
         logging: false,
-        ssl: config.get('DB_SSL') === 'true'
-          ? { rejectUnauthorized: config.get('DB_SSL_REJECT_UNAUTHORIZED') !== 'false' }
-          : false,
+        charset: 'utf8mb4',
+        timezone: 'Z',
+        ssl:
+          config.get('DB_SSL') === 'true'
+            ? {
+                rejectUnauthorized:
+                  config.get('DB_SSL_REJECT_UNAUTHORIZED') !== 'false',
+              }
+            : undefined,
       }),
     }),
     AuthModule,

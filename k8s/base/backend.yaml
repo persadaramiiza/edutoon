@@ -40,6 +40,11 @@ spec:
                 name: edutoon-config
             - secretRef:
                 name: edutoon-runtime
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
           resources:
             requests:
               cpu: 100m

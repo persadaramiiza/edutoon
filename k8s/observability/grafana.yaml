@@ -4,11 +4,12 @@ metadata:
   name: edutoon-grafana
   namespace: edutoon-benchmark
 spec:
+  type: LoadBalancer
   selector:
     app: edutoon-grafana
   ports:
     - name: http
-      port: 3000
+      port: 3001
       targetPort: http
 ---
 apiVersion: apps/v1

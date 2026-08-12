@@ -10,7 +10,7 @@ $context = kubectl config current-context
 if ($context -ne 'docker-desktop') {
   throw "Refusing Secret creation: current Kubernetes context is '$context', expected 'docker-desktop'."
 }
-$required = @('DB_PASS', 'JWT_SECRET', 'GRAFANA_ADMIN_PASSWORD', 'BENCHMARK_EMAIL', 'BENCHMARK_PASSWORD')
+$required = @('DB_PASS', 'DB_ROOT_PASS', 'JWT_SECRET', 'GRAFANA_ADMIN_PASSWORD', 'BENCHMARK_EMAIL', 'BENCHMARK_PASSWORD')
 foreach ($name in $required) {
   if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
     throw "Required local environment variable is missing: $name"
@@ -23,6 +23,7 @@ Assert-NativeSuccess 'Namespace apply'
 kubectl create secret generic edutoon-runtime `
   --namespace $Namespace `
   --from-literal="DB_PASS=$([Environment]::GetEnvironmentVariable('DB_PASS'))" `
+  --from-literal="DB_ROOT_PASS=$([Environment]::GetEnvironmentVariable('DB_ROOT_PASS'))" `
   --from-literal="JWT_SECRET=$([Environment]::GetEnvironmentVariable('JWT_SECRET'))" `
   --from-literal="GRAFANA_ADMIN_PASSWORD=$([Environment]::GetEnvironmentVariable('GRAFANA_ADMIN_PASSWORD'))" `
   --dry-run=client -o yaml | kubectl apply -f - | Out-Null

@@ -7,7 +7,7 @@ function Assert-NativeSuccess([string]$Action) {
   if ($LASTEXITCODE -ne 0) { throw "$Action failed with exit code $LASTEXITCODE." }
 }
 foreach ($workload in @(
-  'statefulset/edutoon-postgres',
+  'statefulset/edutoon-mariadb',
   'deployment/edutoon-backend',
   'deployment/edutoon-frontend',
   'deployment/edutoon-prometheus',

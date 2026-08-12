@@ -1,13 +1,13 @@
 # EduToon Local Benchmark
 
-Lingkungan ini menjalankan PostgreSQL, backend, frontend, Prometheus, Grafana, dan k6 pada Kubernetes Docker Desktop. Tidak ada EKS, RDS, GCP, atau resource cloud berbayar yang dibuat.
+Lingkungan ini menjalankan MariaDB, backend, frontend, Prometheus, Grafana, dan k6 pada Kubernetes Docker Desktop. Tidak ada EKS, RDS, GCP, atau resource cloud berbayar yang dibuat.
 
 ## Prasyarat
 
 - Context Kubernetes harus `docker-desktop`.
 - Container node lokal harus bernama `desktop-control-plane`.
 - Docker Engine dan `kubectl` harus aktif.
-- Nilai `DB_PASS`, `JWT_SECRET`, `GRAFANA_ADMIN_PASSWORD`, `BENCHMARK_EMAIL`, dan `BENCHMARK_PASSWORD` harus tersedia hanya pada environment proses lokal. Jangan simpan nilainya pada repository atau riwayat shell.
+- Nilai `DB_PASS`, `DB_ROOT_PASS`, `JWT_SECRET`, `GRAFANA_ADMIN_PASSWORD`, `BENCHMARK_EMAIL`, dan `BENCHMARK_PASSWORD` harus tersedia hanya pada environment proses lokal. Jangan simpan nilainya pada repository atau riwayat shell.
 
 Script mutasi berhenti bila context bukan `docker-desktop`. Karena Docker Desktop menyembunyikan container node kind, `load-kind-images.ps1` memakai pod privileged sementara untuk mengakses socket containerd, mengimpor image lokal, lalu selalu menghapus pod tersebut.
 
@@ -49,4 +49,4 @@ Backend readiness memakai `/api/health`, liveness memakai `/api/health/ping`, da
 
 ## Migration production
 
-`synchronize` selalu dinonaktifkan. Migration awal hanya menerima database kosong. Bila tabel production lama sudah ada, migration berhenti tanpa mengubah schema dan meminta proses audit/baseline eksplisit. Jangan menjalankan migration atau seed benchmark terhadap production.
+`synchronize` selalu dinonaktifkan. Migration MariaDB awal hanya menerima database kosong. MariaDB melakukan auto-commit pada DDL, sehingga Job yang gagal harus dihentikan dan database kosong dibuat ulang sebelum percobaan berikutnya. Bila tabel production lama sudah ada, migration berhenti dan meminta proses audit/baseline eksplisit. Jangan menjalankan migration atau seed benchmark terhadap production.
