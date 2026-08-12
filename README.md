@@ -1,5 +1,9 @@
 # EduToon 🎓
-  <strong>Platform Video Edukatif untuk Anak-Anak</strong>
+
+Dokumentasi benchmark Kubernetes lokal: [docs/local-benchmark.md](docs/local-benchmark.md).
+
+<strong>Platform Video Edukatif untuk Anak-Anak</strong>
+
 </p>
 
 ## 📖 Deskripsi
@@ -11,33 +15,38 @@ Platform ini menyediakan fitur komprehensif untuk pembelajaran online, termasuk 
 ## ✨ Fitur Utama
 
 ### Untuk Siswa
+
 - **Konten Video Edukatif** - Video pembelajaran dalam format webtoon yang menarik
 - **Kuis Interaktif** - Kuis setelah video untuk menguji pemahaman
-- **Profil Pengguna** - Profil yang dapat dipersonalisasi dengan avatar unik 
+- **Profil Pengguna** - Profil yang dapat dipersonalisasi dengan avatar unik
 - **Dashboard Pembelajaran** - Ringkasan progress dan statistik pembelajaran
 - **Riwayat Menonton** - Pelacakan video yang telah ditonton
 - **Pencapaian & Badge** - Sistem reward untuk memotivasi pembelajaran
 
 ### Untuk Kreator
+
 - **Dashboard Kreator** - Panel untuk mengelola konten
 - **Manajemen Video** - Upload dan kelola video edukatif
 - **Manajemen Kuis** - Buat dan edit kuis untuk setiap video
 
 ### Keamanan & Performa
+
 - **Autentikasi JWT** - Keamanan berbasis JWT token
 - **Rate Limiting** - Proteksi terhadap abuse (60 request/menit per IP)
 - **Security Headers** - Helmet.js untuk keamanan HTTP
-- **Database PostgreSQL** - Penyimpanan data yang reliable
+- **Database MariaDB** - Penyimpanan data relasional
 
 ## 🏗️ Arsitektur Sistem
 
 ### Backend (NestJS)
+
 - Framework modern dengan struktur modular
 - REST API dengan dokumentasi Swagger
 - TypeORM untuk management database
 - Validasi input dengan class-validator
 
 **Modules:**
+
 - `auth` - Autentikasi dan otorisasi
 - `users` - Manajemen pengguna dan akun
 - `profiles` - Profil pengguna dan preferensi
@@ -47,6 +56,7 @@ Platform ini menyediakan fitur komprehensif untuk pembelajaran online, termasuk 
 - `health` - Health check endpoint
 
 ### Frontend (Next.js 16 + React 19)
+
 - Modern React with Server Components
 - Tailwind CSS untuk styling
 - Framer Motion untuk animasi
@@ -54,6 +64,7 @@ Platform ini menyediakan fitur komprehensif untuk pembelajaran online, termasuk 
 - Context API untuk state management
 
 **Halaman Utama:**
+
 - Login & Register
 - Landing Page (Beranda)
 - Dashboard Siswa
@@ -64,15 +75,17 @@ Platform ini menyediakan fitur komprehensif untuk pembelajaran online, termasuk 
 
 ## 🚀 Setup & Instalasi
 
-### Instalasi 
+### Instalasi
 
 #### 1. Clone Repository
+
 ```bash
 git clone https://github.com/persadaramiiza/edutoon.git
 cd edutoon
 ```
 
 #### 2. Setup Backend
+
 ```bash
 # Install dependencies
 pnpm install
@@ -93,6 +106,7 @@ pnpm run start:prod
 ```
 
 #### 3. Setup Frontend
+
 ```bash
 cd frontend
 
@@ -110,19 +124,23 @@ pnpm run start
 ## 📡 API Endpoints
 
 ### Authentication
+
 - `POST /auth/register` - Register akun baru
 - `POST /auth/login` - Login pengguna
 - `POST /auth/refresh` - Refresh JWT token
 
 ### Users
+
 - `GET /users/profile` - Get profil pengguna saat ini
 - `PUT /users/profile` - Update profil pengguna
 
 ### Profiles
+
 - `GET /profiles` - List semua profil pengguna
 - `POST /profiles` - Create profil baru
 
 ### Videos
+
 - `GET /videos` - List semua video
 - `GET /videos/:id` - Detail video
 - `POST /videos` - Upload video baru (creator only)
@@ -130,16 +148,19 @@ pnpm run start
 - `DELETE /videos/:id` - Hapus video
 
 ### Quizzes
+
 - `GET /quizzes/:videoId` - Get kuis untuk video tertentu
 - `POST /quizzes/attempt` - Submit jawaban kuis
 - `GET /quizzes/attempt/:attemptId` - Get hasil attempt
 
 ### Watch History
+
 - `GET /watch-history` - Get riwayat menonton pengguna
 - `POST /watch-history` - Record menonton video
 - `DELETE /watch-history/:id` - Hapus riwayat
 
 ### Health Check
+
 - `GET /health` - Cek status aplikasi
 
 ## 📁 Struktur Project
@@ -148,30 +169,30 @@ pnpm run start
 edutoon/
 ├── src/
 │   └── backend/
-│       ├── auth/              
-│       ├── users/             
-│       ├── profiles/          
-│       ├── videos/            
-│       ├── quizzes/           
-│       ├── watch-history/     
-│       ├── health/            
-│       ├── app.module.ts      
-│       └── main.ts            
+│       ├── auth/
+│       ├── users/
+│       ├── profiles/
+│       ├── videos/
+│       ├── quizzes/
+│       ├── watch-history/
+│       ├── health/
+│       ├── app.module.ts
+│       └── main.ts
 ├── frontend/
-│   ├── app/                   
+│   ├── app/
 │   │   ├── login/
 │   │   ├── register/
 │   │   ├── dashboard/
 │   │   ├── creator/
 │   │   ├── watch/
 │   │   └── profile/
-│   ├── components/            
-│   ├── contexts/              
-│   ├── lib/                   
-│   └── public/                
-├── test/                      
+│   ├── components/
+│   ├── contexts/
+│   ├── lib/
+│   └── public/
+├── test/
 ├── docker-compose.yml
-├── ecosystem.config.js        
+├── ecosystem.config.js
 └── README.md
 
 ```
@@ -179,6 +200,7 @@ edutoon/
 ## 📊 Database Schema
 
 **Main Entities:**
+
 - `User` - Akun pengguna (email, password, role)
 - `Profile` - Profil pengguna (nama, avatar, bio)
 - `Video` - Konten video edukatif
@@ -187,13 +209,17 @@ edutoon/
 - `QuizAttempt` - Rekam percobaan menjawab kuis
 - `WatchHistory` - Riwayat video yang ditonton
 
+## Deployment Kubernetes / AWS EKS
+
+Kontrak handoff backend untuk tim infra tersedia di
+[`deploy/kubernetes/backend`](deploy/kubernetes/backend/README.md). Manifest
+tersebut hanya mendefinisikan workload aplikasi dan tidak membuat resource AWS
+atau menyimpan credential.
+
 ## Contibutor
+
 1. Kevin Azra (18223029)
 2. Persada Ramiiza Abyudaya (18223033)
 3. Inggried Amelia Deswanty (18223035)
 4. Muhammad Aqmar Fayyaz Zakaria (18223043)
-5. Velicia Christina Gabriel (18223085) 
-
-
-
-
+5. Velicia Christina Gabriel (18223085)

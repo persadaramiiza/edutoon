@@ -1,0 +1,31 @@
+import { DataSource, DataSourceOptions } from 'typeorm';
+import { databaseEntities } from './entities';
+import { InitialSchema1723348800000 } from './migrations/1723348800000-InitialSchema';
+
+export function createDataSourceOptions(): DataSourceOptions {
+  const sslEnabled = process.env.DB_SSL === 'true';
+
+  return {
+    type: 'mariadb',
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT || 3306),
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    entities: databaseEntities,
+    migrations: [InitialSchema1723348800000],
+    synchronize: false,
+    migrationsRun: false,
+    logging: false,
+    charset: 'utf8mb4',
+    timezone: 'Z',
+    ssl: sslEnabled
+      ? {
+          rejectUnauthorized:
+            process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+        }
+      : undefined,
+  };
+}
+
+export const AppDataSource = new DataSource(createDataSourceOptions());

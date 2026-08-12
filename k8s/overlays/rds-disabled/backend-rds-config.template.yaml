@@ -1,0 +1,12 @@
+# DOCUMENTATION ONLY. Do not apply without company approval.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutoon-rds-config-disabled
+  namespace: edutoon-benchmark
+data:
+  DB_HOST: ${RDS_ENDPOINT}
+  DB_PORT: '3306'
+  DB_NAME: ${RDS_DATABASE_NAME}
+  DB_SSL: 'true'
+  DB_SSL_REJECT_UNAUTHORIZED: 'true'

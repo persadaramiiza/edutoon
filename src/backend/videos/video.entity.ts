@@ -5,6 +5,7 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../users/user.entity';
 
@@ -44,6 +45,7 @@ export class Video {
   status: 'draft' | 'published' | 'archived';
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'creator_id' })
   creator: User;
 
   @Column({ nullable: true })

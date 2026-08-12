@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutoon-config
+  namespace: edutoon-benchmark
+data:
+  PORT: '3000'
+  DB_HOST: edutoon-mariadb
+  DB_PORT: '3306'
+  DB_USER: edutoon
+  DB_NAME: edutoon_benchmark
+  JWT_EXPIRES_IN: 1h
+  FRONTEND_URL: http://edutoon-frontend:3333
+  BACKEND_INTERNAL_URL: http://edutoon-backend:3000
+  CLUSTER_LABEL: docker-desktop
+  KUBERNETES_NAMESPACE: edutoon-benchmark
+  ALLOW_BENCHMARK_SEED: 'true'

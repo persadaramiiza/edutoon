@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: edutoon-k6-smoke
+  namespace: edutoon-benchmark
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: edutoon-k6-smoke
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:0.55.0
+          args: ["run", "/scripts/smoke.js"]
+          env:
+            - name: BASE_URL
+              value: http://edutoon-backend:3000
+            - name: BENCHMARK_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: edutoon-benchmark-account
+                  key: BENCHMARK_EMAIL
+            - name: BENCHMARK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: edutoon-benchmark-account
+                  key: BENCHMARK_PASSWORD
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+      volumes:
+        - name: scripts
+          configMap:
+            name: edutoon-k6-scripts

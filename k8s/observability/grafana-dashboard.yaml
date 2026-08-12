@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutoon-grafana-dashboard
+  namespace: edutoon-benchmark
+data:
+  edutoon.json: |
+    {
+      "uid": "edutoon-local",
+      "title": "EduToon Local Benchmark",
+      "schemaVersion": 41,
+      "version": 1,
+      "refresh": "10s",
+      "time": {"from": "now-15m", "to": "now"},
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Backend scrape up",
+          "id": 1,
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "up{job=\"edutoon-backend\"}"}],
+          "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP request rate",
+          "id": 2,
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "sum(rate(edutoon_http_requests_total[1m])) by (route, status_code)"}],
+          "gridPos": {"h": 8, "w": 9, "x": 6, "y": 0}
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP p95 latency",
+          "id": 3,
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [{"refId": "A", "expr": "histogram_quantile(0.95, sum(rate(edutoon_http_request_duration_seconds_bucket[5m])) by (le, route))"}],
+          "gridPos": {"h": 8, "w": 9, "x": 15, "y": 0}
+        }
+      ]
+    }

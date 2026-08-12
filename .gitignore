@@ -100,5 +100,10 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # ------------------------------------------------------
 .temp
 .tmp
+# Local benchmark inputs and rendered Kubernetes secrets
+k8s/local/
+*.secret.yaml
+benchmark.secret.env
+benchmark-results/
 # Vercel
 .vercel

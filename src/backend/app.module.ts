@@ -24,31 +24,54 @@ import { QuizzesModule } from './quizzes/quizzes.module';
 
 import { WatchHistory } from './watch-history/watch-history.entity';
 import { WatchHistoryModule } from './watch-history/watch-history.module';
+import { VideoProgress } from './videos/video-progress.entity';
 
 import { HealthModule } from './health/health.module';
+import { MetricsModule } from './metrics/metrics.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
     // Rate Limiting: 60 requests per minute per IP
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 60,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 60,
+      },
+    ]),
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        type: 'postgres',
+        type: 'mariadb',
         host: config.get('DB_HOST') || config.get('DB_Host'),
-        port: Number(config.get('DB_PORT')),
+        port: Number(config.get('DB_PORT') || 3306),
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        entities: [User, Profile, Video, Quiz, QuizOption, QuizAttempt, WatchHistory],
-        synchronize: process.env.NODE_ENV !== 'production',
+        entities: [
+          User,
+          Profile,
+          Video,
+          VideoProgress,
+          Quiz,
+          QuizOption,
+          QuizAttempt,
+          WatchHistory,
+        ],
+        synchronize: false,
+        migrationsRun: false,
         logging: false,
+        charset: 'utf8mb4',
+        timezone: 'Z',
+        ssl:
+          config.get('DB_SSL') === 'true'
+            ? {
+                rejectUnauthorized:
+                  config.get('DB_SSL_REJECT_UNAUTHORIZED') !== 'false',
+              }
+            : undefined,
       }),
     }),
     AuthModule,
@@ -58,6 +81,7 @@ import { HealthModule } from './health/health.module';
     QuizzesModule,
     WatchHistoryModule,
     HealthModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [

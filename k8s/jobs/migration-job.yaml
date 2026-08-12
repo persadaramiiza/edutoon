@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: edutoon-migration
+  namespace: edutoon-benchmark
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: edutoon-migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: edutoon-backend:local
+          imagePullPolicy: Never
+          command: ["node", "dist/database/run-migrations.js"]
+          envFrom:
+            - configMapRef:
+                name: edutoon-config
+            - secretRef:
+                name: edutoon-runtime
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi

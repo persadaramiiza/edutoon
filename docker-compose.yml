@@ -1,16 +1,25 @@
-version: '3.8'
 services:
   db:
-    image: postgres:15
+    image: mariadb:11.4
     restart: always
     environment:
-      POSTGRES_USER: edutoon
-      POSTGRES_PASSWORD: edutoon_local_password
-      POSTGRES_DB: edutoon
+      MARIADB_USER: ${DB_USER:-edutoon}
+      MARIADB_PASSWORD: ${DB_PASS:?DB_PASS must be supplied from the local environment}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:?DB_ROOT_PASS must be supplied from the local environment}
+      MARIADB_DATABASE: ${DB_NAME:-edutoon_benchmark}
     ports:
-      - "5432:5432"
+      - '${DB_PORT:-3306}:3306'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mariadb-admin ping -h 127.0.0.1 -u$$MARIADB_USER -p$$MARIADB_PASSWORD --silent',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
-  postgres_data:
+  mariadb_data:

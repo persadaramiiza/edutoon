@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edutoon-prometheus-config
+  namespace: edutoon-benchmark
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: edutoon-backend
+        metrics_path: /metrics
+        static_configs:
+          - targets:
+              - edutoon-backend.edutoon-benchmark.svc.cluster.local:3000

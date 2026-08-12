@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: edutoon-backend
+  namespace: edutoon-benchmark
+  labels:
+    app: edutoon-backend
+spec:
+  selector:
+    app: edutoon-backend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edutoon-backend
+  namespace: edutoon-benchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edutoon-backend
+  template:
+    metadata:
+      labels:
+        app: edutoon-backend
+    spec:
+      containers:
+        - name: backend
+          image: edutoon-backend:local
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: edutoon-config
+            - secretRef:
+                name: edutoon-runtime
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 750m
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /api/health/ping
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health/ping
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
