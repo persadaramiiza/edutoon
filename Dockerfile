@@ -16,7 +16,10 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000
-RUN groupadd --system --gid 1001 edutoon && \
+RUN apt-get update && \
+    apt-get install --yes --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd --system --gid 1001 edutoon && \
     useradd --system --uid 1001 --gid edutoon --create-home edutoon
 COPY --from=deps --chown=edutoon:edutoon /app/node_modules ./node_modules
 COPY --from=builder --chown=edutoon:edutoon /app/dist ./dist
