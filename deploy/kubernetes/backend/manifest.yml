@@ -74,6 +74,9 @@ spec:
             - secretRef:
                 name: edutoon-backend-secret
           env:
+            # Backend-only benchmark: no frontend deployment is active.
+            - name: FRONTEND_URL
+              value: https://edutoon.invalid
             - name: POD_NAME
               valueFrom:
                 fieldRef:

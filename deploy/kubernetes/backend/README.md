@@ -45,7 +45,7 @@ manifest hasil render, image, atau log pipeline.
 | `DB_SSL`                     | ya    | Gunakan `true` untuk koneksi RDS.                     |
 | `DB_SSL_REJECT_UNAUTHORIZED` | ya    | Gunakan `true`; perubahan memerlukan review keamanan. |
 | `JWT_EXPIRES_IN`             | ya    | Contoh `1h`.                                          |
-| `FRONTEND_URL`               | ya    | Origin frontend yang diizinkan oleh CORS.             |
+| `FRONTEND_URL`               | ya    | Gunakan `https://edutoon.invalid` selama benchmark backend-only tanpa frontend aktif. |
 | `CLUSTER_LABEL`              | ya    | Label cluster untuk metrik Prometheus.                |
 
 `ALLOW_BENCHMARK_SEED`, `BENCHMARK_EMAIL`, dan `BENCHMARK_PASSWORD` tidak boleh
